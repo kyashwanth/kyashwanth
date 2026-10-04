@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interview Mode — QA Games</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%9E%3C/text%3E%3C/svg%3E"><link rel="stylesheet" href="shared.css">
+<style>
+  h1 { font-size:clamp(30px,6vw,48px); letter-spacing:-.03em; margin:8px 0; }
+  .lead { color:var(--muted); max-width:640px; margin:0 0 26px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:16px; }
+  .round { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:22px; display:flex; flex-direction:column; gap:10px; }
+  .round h2 { margin:0; font-size:20px; } .round p { margin:0; color:var(--muted); font-size:15px; }
+  .round ol { margin:0; padding-left:20px; font-size:14px; color:var(--muted); }
+  .round .btn { margin-top:auto; text-align:center; }
+  .meta { font-size:13px; color:var(--muted); }
+  #frameBox iframe { width:100%; height:760px; border:1px solid var(--line); border-radius:16px; background:var(--bg); }
+  .bar { height:10px; background:rgba(255,255,255,.08); border-radius:6px; overflow:hidden; margin-top:6px; }
+  .bar i { display:block; height:100%; background:linear-gradient(90deg,var(--a1),var(--a2)); }
+  .prog { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .prog span { padding:5px 14px; border-radius:999px; border:1px solid var(--line); font-size:13px; color:var(--muted); }
+  .prog span.on { border-color:var(--a1); color:var(--fg); background:rgba(124,140,255,.15); } .prog span.done { border-color:var(--a2); color:var(--a2); }
+  .verdict { font-size:34px; margin:6px 0; letter-spacing:-.02em; }
+  .row { margin:14px 0; } .row b { display:flex; justify-content:space-between; }
+  @media print { body::before, .noprint { display:none !important; } }
+</style></head>
+<body><div class="wrap">
+  <div class="top noprint"><div><a href="index.html">← All games</a></div><div class="hud" id="hud"></div></div>
+  <div id="main"></div>
+</div>
+<script>
+  const ROUNDS = {
+    screening: { title:'QA Engineer · Screening Round', blurb:'The classic first technical screen: spot defects, design edge-case tests and sanity-check an API.', mins:'about 10 min',
+      stages:[ { page:'bughunt.html', level:'medium', skill:'Functional testing' }, { page:'boundary.html', level:'medium', skill:'Test design' }, { page:'api.html', level:'easy', skill:'API basics' } ] },
+    sdet: { title:'SDET · Technical Round', blurb:'For automation roles: API depth, test reliability and a security mindset.', mins:'about 12 min',
+      stages:[ { page:'api.html', level:'medium', skill:'API testing' }, { page:'flaky.html', level:'medium', skill:'Automation reliability' }, { page:'security.html', level:'medium', skill:'Security testing' } ] },
+    lead: { title:'QA Lead · Strategy Round', blurb:'For leadership roles: risk-based regression, prioritisation under constraints and performance diagnosis.', mins:'about 12 min',
+      stages:[ { page:'regression.html', level:'hard', skill:'Risk-based regression' }, { page:'triage.html', level:'medium', skill:'Prioritisation' }, { page:'perf.html', level:'medium', skill:'Performance analysis' } ] }
+  };
+  const $ = (s, r = document) => r.querySelector(s), main = $('#main');
+  const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ignore */ } } };
+  const NAMES = { 'bughunt.html':'Bug Hunt', 'boundary.html':'Boundary Lab', 'api.html':'API Lab', 'flaky.html':'Flaky Test Hunt', 'security.html':'Security Lab', 'regression.html':'Regression Radar', 'triage.html':'Bug Triage Board', 'perf.html':'Perf Lab' };
+  let rid, R, si, results, t0, clock;
+
+  function home() {
+    clearInterval(clock); $('#hud').innerHTML = '';
+    main.innerHTML = `<h1>🎯 Interview Mode</h1><p class="lead">Three mock technical interviews. Each chains three hands-on challenges, then gives you a scorecard with a hiring verdict. One go per stage, no replays.</p>
+      <div class="grid">${Object.entries(ROUNDS).map(([id, r]) => { const b = store.get('qa:interview:' + id); return `<div class="round"><span class="tag">${r.mins}</span><h2>${r.title}</h2><p>${r.blurb}</p>
+        <ol>${r.stages.map(s => `<li>${NAMES[s.page]} <span class="meta">(${s.skill}, ${s.level})</span></li>`).join('')}</ol>
+        <div class="meta">${b !== null ? 'Best score: <b>' + b + '%</b>' : 'Not attempted yet'}</div><button class="btn" data-r="${id}">Start this round</button></div>`; }).join('')}</div>`;
+    main.querySelectorAll('[data-r]').forEach(b => b.onclick = () => begin(b.dataset.r));
+  }
+  function begin(id) {
+    rid = id; R = ROUNDS[id]; si = 0; results = []; t0 = Date.now();
+    clearInterval(clock); clock = setInterval(() => { const s = Math.floor((Date.now() - t0) / 1000); $('#hud').innerHTML = `<span class="chip">⏱ ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span>`; }, 1000);
+    stage();
+  }
+  function stage() {
+    const S = R.stages[si];
+    main.innerHTML = `<h2 style="margin:0 0 4px">${R.title}</h2><div class="prog">${R.stages.map((s, i) => `<span class="${i < si ? 'done' : i === si ? 'on' : ''}">${i + 1}. ${s.skill}</span>`).join('')}</div>
+      <div id="frameBox"><iframe id="fr" title="${NAMES[S.page]}" src="${S.page}?embed=1&level=${S.level}"></iframe></div>
+      <div class="actions noprint"><button class="btn" id="nx" hidden>${si === R.stages.length - 1 ? 'See my scorecard →' : 'Next stage →'}</button></div>`;
+    $('#nx').onclick = () => { si++; si < R.stages.length ? stage() : card(); };
+  }
+  window.addEventListener('message', e => {
+    const fr = $('#fr'); if (!fr || e.source !== fr.contentWindow || !e.data || e.data.type !== 'qa-result') return;
+    const S = R.stages[si]; results[si] = { ...S, pct:e.data.pct ?? 0, score:e.data.score };
+    $('#nx').hidden = false;
+  });
+  function verdictOf(p) { return p >= 85 ? ['🏆', 'Strong hire', 'Excellent across the board. You would pass this round with confidence.'] : p >= 70 ? ['✅', 'Hire', 'Solid performance with a few gaps worth tightening.'] : p >= 50 ? ['🤔', 'Maybe', 'Some good instincts, but there are clear gaps to close before the real thing.'] : ['📚', 'Not yet', 'Keep practising the individual games, then try this round again.']; }
+  function card() {
+    clearInterval(clock); const secs = Math.floor((Date.now() - t0) / 1000);
+    const pcts = R.stages.map((s, i) => Math.round((results[i]?.pct ?? 0) * 100)), overall = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length), [em, v, why] = verdictOf(overall);
+    const best = store.get('qa:interview:' + rid); if (!(best >= overall)) store.set('qa:interview:' + rid, overall);
+    const note = p => p >= 80 ? 'Strong' : p >= 50 ? 'Solid, with gaps' : 'Needs work';
+    main.innerHTML = `<div class="panel"><span class="tag">${R.title}</span><div class="verdict">${em} ${v}</div><p>${why}</p>
+      <div class="row"><b><span>Overall</span><span>${overall}%</span></b><div class="bar"><i style="width:${overall}%"></i></div></div>
+      ${R.stages.map((s, i) => `<div class="row"><b><span>${s.skill} <span class="meta">· ${NAMES[s.page]} (${s.level})</span></span><span>${pcts[i]}% · ${note(pcts[i])}</span></b><div class="bar"><i style="width:${pcts[i]}%"></i></div></div>`).join('')}
+      <p class="meta">Time taken: ${Math.floor(secs / 60)}m ${secs % 60}s</p>
+      <div class="actions noprint"><button class="btn" id="again2">Retake this round</button><button class="btn ghost" id="hm">All rounds</button><button class="btn ghost" id="pr">Print scorecard</button></div></div>`;
+    $('#again2').onclick = () => begin(rid); $('#hm').onclick = home; $('#pr').onclick = () => window.print();
+  }
+  home();
+</script></body></html>

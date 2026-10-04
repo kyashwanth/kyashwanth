@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boundary Lab — QA Games</title><link rel="stylesheet" href="shared.css"></head>
+<body><script src="shared.js"></script>
+<script>
+QA.frame({
+  id:'boundary', max:{easy:100,medium:300,hard:500}, emoji:'📏', title:'Boundary Lab', aspect:'Boundary value analysis',
+  intro:'Each form field is supposed to follow a rule, but its validator has an off-by-one bug. Type test values (you have limited tries), spot where the field disagrees with the rule, and report it.',
+  levelInfo:{ easy:'1 field, 1 bug, 12 tries.', medium:'3 fields, all buggy, 20 tries.', hard:'6 fields (one is clean!), mixed text and numbers, 28 tries.' }
+});
+const int = v => Number.isInteger(v);
+const FIELDS = {
+  age:   { label:'Age', spec:'Whole numbers from 18 to 65, inclusive.', num:true, ok:v => int(v) && v >= 18 && v <= 65, impl:v => int(v) && v >= 18 && v < 65 },
+  qty:   { label:'Quantity', spec:'Whole numbers from 1 to 10.', num:true, ok:v => int(v) && v >= 1 && v <= 10, impl:v => int(v) && v >= 1 && v <= 11 },
+  disc:  { label:'Order total for discount', spec:'$50.00 or more, but less than $500.00.', num:true, ok:v => isFinite(v) && v >= 50 && v < 500, impl:v => isFinite(v) && v > 50 && v < 500 },
+  pw:    { label:'Password length', spec:'8 to 20 characters.', num:false, ok:s => s.length >= 8 && s.length <= 20, impl:s => s.length >= 8 && s.length <= 21 },
+  month: { label:'Month', spec:'Whole numbers from 1 to 12.', num:true, ok:v => int(v) && v >= 1 && v <= 12, impl:v => int(v) && v >= 0 && v <= 12 },
+  rate:  { label:'Star rating', spec:'Whole numbers from 1 to 5.', num:true, ok:v => int(v) && v >= 1 && v <= 5, impl:v => int(v) && v >= 1 && v <= 5 }
+};
+const SETS = { easy:['age'], medium:['age','qty','disc'], hard:['age','qty','disc','pw','month','rate'] }, TRIES = { easy:12, medium:20, hard:28 };
+const stage = QA.$('#stage'), $ = QA.$;
+stage.innerHTML = `<div class="stack" id="fields"></div><div class="actions"><button class="btn" id="fin">Finish testing</button></div>`;
+let keys, found, score, tries, running = false;
+const draw = () => QA.hud([`Bugs: ${found ? found.size : 0} / ${keys ? keys.filter(k => FIELDS[k].ok.toString() !== FIELDS[k].impl.toString()).length : 0}`, `Score: ${score || 0}`, `Tries left: ${tries ?? 0}`]);
+const hasBug = k => FIELDS[k].ok.toString() !== FIELDS[k].impl.toString();
+function finish() {
+  running = false; const bugs = keys.filter(hasBug), n = found.size, bonus = n === bugs.length ? tries * 5 : 0; score += bonus;
+  const [e, t] = QA.rate(n / bugs.length), missed = bugs.filter(k => !found.has(k));
+  QA.end(e, t, `You found ${n} of ${bugs.length} bugs. Final score: ${score}${bonus ? ` (includes +${bonus} for unused tries)` : ''}.`,
+    missed.length ? '<b>Missed:</b><ul>' + missed.map(k => `<li>${FIELDS[k].label}: "${FIELDS[k].spec}" but the validator is off by one at an edge.</li>`).join('') + '</ul>' : '', score);
+}
+function build() {
+  $('#fields').innerHTML = keys.map(k => `<div class="panel" data-k="${k}"><h2>${FIELDS[k].label}</h2><p class="hint" style="margin-top:0">Rule: ${FIELDS[k].spec}</p>
+    <div class="row2"><input class="in" style="flex:1" placeholder="${FIELDS[k].num ? 'type a number' : 'type some text'}"><button class="btn small">Test</button></div><div class="hist"></div></div>`).join('');
+  document.querySelectorAll('#fields .panel').forEach(p => {
+    const k = p.dataset.k, f = FIELDS[k], inp = p.querySelector('input');
+    const test = () => {
+      if (!running || tries <= 0) return;
+      const raw = inp.value, v = f.num ? (raw.trim() === '' ? NaN : Number(raw)) : raw, acc = f.impl(v), mis = f.ok(v) !== acc; tries--;
+      const d = document.createElement('div'); d.className = 'entry';
+      d.innerHTML = `<span>${f.num ? raw || '(empty)' : `"${raw}" (${raw.length} chars)`} → <span class="pill ${acc ? 'g' : 'r'}">${acc ? 'accepted' : 'rejected'}</span></span><button class="btn small ghost">⚑ Report</button>`;
+      d.querySelector('button').onclick = e => {
+        if (!running) return; e.target.disabled = true;
+        if (mis && !found.has(k)) { found.add(k); score += 100; d.style.outline = '2px solid var(--a2)'; }
+        else if (mis) { /* same bug reported twice */ }
+        else { score -= 25; d.style.outline = '2px solid var(--bad)'; }
+        draw(); if (found.size === keys.filter(hasBug).length) finish();
+      };
+      p.querySelector('.hist').prepend(d); inp.value = ''; inp.focus(); draw();
+    };
+    p.querySelector('.btn').onclick = test; inp.onkeydown = e => { if (e.key === 'Enter') test(); };
+  });
+}
+$('#fin').onclick = () => { if (running) finish(); };
+QA.onStart(lv => { keys = SETS[lv]; found = new Set(); score = 0; tries = TRIES[lv]; running = true; build(); draw(); });
+</script></body></html>

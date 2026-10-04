@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accessibility Audit — QA Games</title><link rel="stylesheet" href="shared.css"></head>
+<body><script src="shared.js"></script>
+<script>
+const bx = (inner, extra = '') => `<div class="a-box" ${extra}>${inner}</div>`;
+QA.hunt({
+  id:'a11y', max:{easy:400,medium:600,hard:800}, emoji:'♿', title:'Accessibility Audit', aspect:'Accessibility testing',
+  intro:'Audit a sign-up page like a real accessibility tester. The inspector shows size, a live contrast ratio and the underlying HTML. Clean elements are traps.',
+  levelInfo:{ easy:'4 clear issues, 150s, 3 hints.', medium:'6 issues including contrast and touch targets, 120s, 1 hint.', hard:'8 issues including focus and colour-only errors, 100s, no hints.' },
+  levels:{ easy:{ seconds:150, hints:3, bugs:['img','label','div','link'] }, medium:{ seconds:120, hints:1, bugs:['img','label','div','link','cont','size'] }, hard:{ seconds:100, hints:0, bugs:['img','label','div','link','cont','size','color','focus'] } },
+  bugs:[
+    { id:'img',   els:['x-img'],   text:'Hero image has no alt text, so screen readers announce nothing useful.' },
+    { id:'label', els:['x-label'], text:'Input relies on a placeholder only: there is no associated label.' },
+    { id:'div',   els:['x-div'],   text:'Submit is a clickable &lt;div&gt;: not focusable and not operable by keyboard.' },
+    { id:'link',  els:['x-link'],  text:'Link text "Click here" is meaningless out of context.' },
+    { id:'cont',  els:['x-cont'],  text:'Light grey text on white fails the colour-contrast ratio.' },
+    { id:'size',  els:['x-size'],  text:'The close button is far too small a touch target (aim for 24 to 44px).' },
+    { id:'color', els:['x-color'], text:'The error is shown only by a red border: colour alone is not a signal.' },
+    { id:'focus', els:['x-focus'], text:'The focus outline is removed, so keyboard users cannot see where they are.' }
+  ],
+  css:'.a-box{border:1px solid #e3e6ea;border-radius:10px;padding:14px;margin-bottom:12px}.a-in{border:1px solid #bbb;border-radius:6px;padding:8px 10px;font-size:14px;color:#333}.found{outline:3px solid #3de0c5!important;outline-offset:3px}',
+  app: on => [
+    bx(`<b>Welcome to LearnLoop</b> <span id="x-size" data-info="&lt;button class=close&gt;" style="float:right;border:1px solid #ccc;text-align:center;display:inline-block;width:${on('size') ? 14 : 44}px;height:${on('size') ? 14 : 44}px;line-height:${on('size') ? 14 : 44}px;font-size:${on('size') ? 11 : 20}px">×</span>`),
+    bx(`<div id="x-img" data-info="${on('img') ? '&lt;img src=hero.png&gt;  alt: (missing)' : '&lt;img src=hero.png alt=&quot;Learners studying together&quot;&gt;'}" style="background:#dde4ff;border-radius:8px;padding:22px;text-align:center">🖼️ hero.png</div>`),
+    bx(`<p id="x-cont" data-info="&lt;p class=lead&gt;" style="margin:0;color:${on('cont') ? '#c9c9c9' : '#555'};font-size:14px">Join 40,000 learners today. No credit card needed.</p>`),
+    bx(`<label style="font-size:13px;color:#444">Full name</label><div class="a-in" data-info="&lt;label for=name&gt; + &lt;input id=name&gt;">Jane Doe</div>`),
+    bx(`${on('label') ? '' : '<label style="font-size:13px;color:#444">Email address</label>'}<div id="x-label" class="a-in" data-info="${on('label') ? '&lt;input placeholder=&quot;Email address&quot;&gt;  label: (none)' : '&lt;label for=email&gt; + &lt;input id=email&gt;'}" style="color:#666">${on('label') ? 'Email address' : 'jane@example.com'}</div>
+        <div id="x-color" class="a-in" data-info="${on('color') ? 'invalid field: border red, no error text, no aria-invalid' : 'invalid field: border red + text message + aria-invalid=true'}" style="margin-top:8px;border-color:#e03131">jane@</div>${on('color') ? '' : '<div style="color:#c92a2a;font-size:13px;margin-top:3px">Enter a valid email address.</div>'}`),
+    bx(`<a id="x-link" data-info="&lt;a href=/terms&gt;" style="color:#1c5fd4;text-decoration:underline">${on('link') ? 'Click here' : 'Read our terms of service'}</a>${on('link') ? ' to read our terms.' : ''}`),
+    bx(`<div id="x-div" data-info="${on('div') ? '&lt;div class=btn onclick=submit()&gt;  tabindex: none' : '&lt;button type=submit&gt;  focusable, Enter/Space work'}" style="display:inline-block;background:#1c5fd4;color:#fff;padding:9px 20px;border-radius:8px;font-weight:700">Create account</div>
+        <div id="x-focus" class="a-in" data-info="${on('focus') ? 'input:focus { outline: none; }' : 'input:focus { outline: 2px solid #1c5fd4; }'}" style="margin-top:8px">Search courses</div>`),
+    bx(`<button data-info="&lt;button&gt;Need help?&lt;/button&gt;  default focus ring" style="background:#2b8a3e;color:#fff;border:0;border-radius:8px;padding:10px 18px;font-weight:700">Need help?</button>`)
+  ].join('')
+});
+</script></body></html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Detective — QA Games</title><link rel="stylesheet" href="shared.css"></head>
+<body><script src="shared.js"></script>
+<script>
+const COLS = [['order_id','PRIMARY KEY, unique'],['customer','FOREIGN KEY to customers(id): C-17, C-22, C-31'],['email','NOT NULL'],['amount','DECIMAL(10,2), must be > 0'],['status','ENUM: PAID, SHIPPED, DELIVERED'],['created_at','DATE, cannot be after today (2026-10-03)'],['shipped_at','DATE, NULL or on/after created_at']];
+const BASE = [
+  ['1001','C-17','ann@mail.com','59.00','SHIPPED','2026-03-02','2026-03-04'],
+  ['1002','C-22','ben@mail.com','120.50','DELIVERED','2026-03-03','2026-03-05'],
+  ['1003','C-17','ann@mail.com','45.00','PAID','2026-03-06','—'],
+  ['1004','C-31','zed@mail.com','35.00','PAID','2026-03-07','—'],
+  ['1005','C-31','cy@mail.com','80.00','PAID','2026-03-08','—'],
+  ['1006','C-22','ben@mail.com','42.00','SHIPPED','2026-03-09','2026-03-11'],
+  ['1007','C-31','cy@mail.com','18.00','SHIPPED','2026-03-10','2026-03-12'],
+  ['1008','C-17','ann@mail.com','64.00','PAID','2026-03-11','—'],
+  ['1009','C-22','ben@mail.com','19.99','DELIVERED','2026-03-14','2026-03-16'],
+  ['1010','C-31','cy@mail.com','205.00','DELIVERED','2026-03-15','2026-03-18']
+];
+// bug id -> [row, column index, bad value]
+const MUT = { neg:[2,3,'-45.00'], orph:[3,1,'C-99'], null:[4,2,'NULL'], dup:[6,0,'1006'], ship:[5,6,'2026-03-01'], stat:[6,4,'SHIPED'], fut:[7,5,'2027-01-15'], prec:[8,3,'19.999'] };
+const cid = (r, c) => `d${r}-${COLS[c][0]}`;
+QA.hunt({
+  id:'data', max:{easy:400,medium:600,hard:800}, emoji:'🗄️', title:'Data Detective', aspect:'Data & database testing',
+  intro:'Inspect the <code>orders</code> table. Click any cell: the inspector shows that column\'s constraint. Report the cells that violate it. Today is 2026-10-03.',
+  levelInfo:{ easy:'4 obvious violations, 150s, 3 hints.', medium:'6 violations incl. foreign key and date logic, 120s, 1 hint.', hard:'8 violations incl. precision and future dates, 100s, no hints.' },
+  levels:{ easy:{ seconds:150, hints:3, bugs:['neg','null','dup','stat'] }, medium:{ seconds:120, hints:1, bugs:['neg','null','dup','stat','orph','ship'] }, hard:{ seconds:100, hints:0, bugs:['neg','null','dup','stat','orph','ship','fut','prec'] } },
+  bugs:[
+    { id:'neg',  els:[cid(2,3)],             text:'Negative order amount (-45.00).' },
+    { id:'null', els:[cid(4,2)],             text:'email is NULL for order 1005 (column is NOT NULL).' },
+    { id:'dup',  els:[cid(5,0), cid(6,0)],   text:'order_id 1006 appears twice: duplicate primary key.' },
+    { id:'stat', els:[cid(6,4)],             text:'Status "SHIPED" is not in the allowed values (typo).' },
+    { id:'orph', els:[cid(3,1)],             text:'customer C-99 does not exist: orphaned foreign key.' },
+    { id:'ship', els:[cid(5,6)],             text:'shipped_at (2026-03-01) is before created_at (2026-03-09).' },
+    { id:'fut',  els:[cid(7,5)],             text:'created_at 2027-01-15 is in the future.' },
+    { id:'prec', els:[cid(8,3)],             text:'Amount 19.999 has three decimals: currency should have two.' }
+  ],
+  css:'table.t{border-collapse:collapse;width:100%;font-size:14px}table.t th{background:#f1f3f5;text-align:left;padding:8px 10px;font-size:12px;text-transform:uppercase;color:#555}table.t td{padding:8px 10px;border-bottom:1px solid #eee}.found{outline:3px solid #3de0c5!important;outline-offset:-2px}',
+  app: on => {
+    const rows = BASE.map(r => [...r]);
+    Object.entries(MUT).forEach(([id, [r, c, v]]) => { if (on(id)) rows[r][c] = v; });
+    return `<table class="t"><tr>${COLS.map(c => `<th>${c[0]}</th>`).join('')}</tr>` +
+      rows.map((r, i) => `<tr>${r.map((v, c) => `<td id="${cid(i, c)}" data-info="column ${COLS[c][0]}: ${COLS[c][1]}">${v === 'NULL' ? '<i>NULL</i>' : v}</td>`).join('')}</tr>`).join('') + '</table>';
+  }
+});
+</script></body></html>

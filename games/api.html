@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API Lab — QA Games</title><link rel="stylesheet" href="shared.css"></head>
+<body><script src="shared.js"></script>
+<script>
+QA.frame({
+  id:'api', max:{easy:300,medium:500,hard:700}, emoji:'🔌', title:'API Lab', aspect:'API testing',
+  intro:'A bookstore API is running in your browser. Send real requests, study the responses against the docs, and report the defects you find.',
+  levelInfo:{ easy:'3 bugs (status codes, validation). 180s, 3 hints.', medium:'5 bugs, adds authentication and authorization. 150s, 1 hint.', hard:'7 bugs, adds error leaks and data types. 120s, no hints.' }
+});
+const BOOKS0 = [{ id:1, title:'Dune', price:12.5 }, { id:2, title:'Emma', price:8 }];
+const TOKENS = { 'user1-token':{ id:1 }, 'user2-token':{ id:2 }, 'admin-token':{ id:0, admin:true } };
+const BUGS = [
+  { id:'status', lv:0, cat:'status',     text:'GET /books/{missing id} returns 200 with an error body instead of 404.', hint:'Ask for a book that does not exist.', hit:(q,r) => q.method==='GET' && /^\/books\/\d+$/.test(q.path) && r.status===200 && r.body && r.body.error },
+  { id:'valid',  lv:0, cat:'validation', text:'POST /books accepts a body with no title.', hint:'Try creating a book with an empty body.', hit:(q,r) => q.method==='POST' && q.path==='/books' && r.status===201 && !(q.body && q.body.title) },
+  { id:'neg',    lv:0, cat:'validation', text:'POST /books accepts a negative price.', hint:'What does the docs say a price must be?', hit:(q,r) => q.method==='POST' && q.path==='/books' && r.status===201 && q.body && q.body.price < 0 },
+  { id:'noauth', lv:1, cat:'auth',       text:'DELETE /books/{id} works with no token at all.', hint:'Try deleting without choosing a token.', hit:(q,r) => q.method==='DELETE' && !q.token && r.status===204 },
+  { id:'idor',   lv:1, cat:'authz',      text:'A user can read another user\'s orders (broken access control).', hint:'Log in as user 1, then read user 2\'s data.', hit:(q,r) => { const m = q.path.match(/^\/users\/(\d+)\/orders$/); return q.method==='GET' && m && q.token && !q.token.admin && q.token.id !== +m[1] && r.status===200; } },
+  { id:'leak',   lv:2, cat:'leak',       text:'GET /books?limit=-1 crashes and returns an internal stack trace.', hint:'Push a query parameter beyond what makes sense.', hit:(q,r) => r.status===500 && JSON.stringify(r.body).includes('at ') },
+  { id:'type',   lv:2, cat:'contract',   text:'GET /books/1 returns price as a string, but the docs say it is a number.', hint:'Read the types in a successful response carefully.', hit:(q,r) => q.method==='GET' && q.path==='/books/1' && r.body && typeof r.body.price==='string' }
+];
+const CATS = { status:'Wrong status code', validation:'Missing validation', auth:'Missing authentication', authz:'Broken authorization', leak:'Information leak', contract:'Contract / data type' };
+const stage = QA.$('#stage');
+stage.innerHTML = `<div class="two">
+  <div class="stack"><div class="panel"><h2>Request</h2>
+    <div class="row2"><select class="in" id="m" style="width:110px"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select><input class="in" id="p" value="/books" style="flex:1"></div>
+    <label class="l">Authorization</label><select class="in" id="a"><option value="">(none)</option><option>user1-token</option><option>user2-token</option><option>admin-token</option></select>
+    <label class="l">JSON body</label><textarea class="in" id="b" placeholder='{"title":"Emma","price":8}'></textarea>
+    <div class="actions"><button class="btn" id="send">Send ▶</button><button class="btn small ghost" id="hint">💡 Hint</button></div>
+    <p class="mini">Examples: <a href="#" data-ex="GET|/books||">list</a> · <a href="#" data-ex="GET|/books/1||">book 1</a> · <a href="#" data-ex='POST|/books||{"title":"Ulysses","price":15}'>create</a> · <a href="#" data-ex="DELETE|/books/2|admin-token|">delete</a></p></div>
+  <div class="panel"><h2>API docs</h2><div class="mini" style="line-height:1.7"><code>GET /books?limit=n</code> list books<br><code>GET /books/{id}</code> one book (price is a number)<br><code>POST /books</code> needs <b>title</b> (text) and <b>price</b> (number ≥ 0)<br><code>DELETE /books/{id}</code> admin token only<br><code>GET /users/{id}/orders</code> only that user, or admin<br>Use standard REST status codes. Tokens: user1-token, user2-token, admin-token.</div></div></div>
+  <div class="stack"><div class="panel"><h2>Response</h2><div id="out" class="res">Send a request to see the response.</div>
+    <label class="l">What is wrong with this response?</label><select class="in" id="rc">${Object.entries(CATS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+    <div class="actions"><button class="btn" id="rep" disabled>🐞 Report bug</button></div></div>
+  <div class="panel"><h2>Bug report</h2><ul id="log"><li class="empty">No bugs reported yet.</li></ul></div></div></div>`;
+const $ = QA.$;
+let active, found, score, hints, last, tm, running = false, books, nextId;
+const handle = q => {
+  const [path, qs] = q.path.split('?'); const query = Object.fromEntries(new URLSearchParams(qs || ''));
+  const R = (status, body) => ({ status, body });
+  q = { ...q, path };
+  let m;
+  if (path === '/books' && q.method === 'GET') {
+    if (query.limit !== undefined) {
+      const n = +query.limit;
+      if (n < 0) return active.has('leak') ? R(500, { error:"TypeError: Cannot read properties of undefined (reading 'slice')", stack:'at paginate (books.js:42:17)\n at handler (routes.js:19:5)' }) : R(400, { error:'limit must be >= 0' });
+      return R(200, books.slice(0, n));
+    }
+    return R(200, books);
+  }
+  if ((m = path.match(/^\/books\/(\d+)$/))) {
+    const id = +m[1];
+    if (q.method === 'GET') {
+      const b = books.find(b => b.id === id);
+      if (!b) return active.has('status') ? R(200, { error:'Book not found' }) : R(404, { error:'Book not found' });
+      return R(200, active.has('type') && id === 1 ? { ...b, price:String(b.price) } : b);
+    }
+    if (q.method === 'DELETE') {
+      if (!q.token && !active.has('noauth')) return R(401, { error:'Authentication required' });
+      if (q.token && !q.token.admin) return R(403, { error:'Admins only' });
+      const i = books.findIndex(b => b.id === id); if (i < 0) return R(404, { error:'Book not found' });
+      books.splice(i, 1); return R(204, null);
+    }
+    return R(405, { error:'Method not allowed' });
+  }
+  if (path === '/books' && q.method === 'POST') {
+    const b = q.body;
+    if (!b || typeof b !== 'object') return active.has('valid') ? (books.push({ id:nextId, title:'', price:0 }), R(201, { id:nextId++ })) : R(400, { error:'Body required' });
+    if (!b.title && !active.has('valid')) return R(400, { error:'title is required' });
+    if (b.price !== undefined && (typeof b.price !== 'number' || isNaN(b.price))) return R(400, { error:'price must be a number' });
+    if (b.price < 0 && !active.has('neg')) return R(400, { error:'price must be >= 0' });
+    const nb = { id:nextId++, title:b.title || '', price:b.price ?? 0 }; books.push(nb); return R(201, nb);
+  }
+  if ((m = path.match(/^\/users\/(\d+)\/orders$/)) && q.method === 'GET') {
+    const uid = +m[1]; if (uid > 2) return R(404, { error:'User not found' });
+    if (!q.token) return R(401, { error:'Authentication required' });
+    if (!q.token.admin && q.token.id !== uid && !active.has('idor')) return R(403, { error:'Forbidden' });
+    return R(200, [{ order:100 + uid, total:20.5 * uid }]);
+  }
+  return R(404, { error:'No such route' });
+};
+const draw = (left = tm ? tm.left() : 0) => QA.hud([`Bugs: ${found ? found.size : 0} / ${active ? active.size : 0}`, `Score: ${score || 0}`, `⏱ ${left}s`]);
+const addLog = (t, miss) => { $('#log .empty')?.remove(); const li = document.createElement('li'); if (miss) li.className = 'miss'; li.textContent = (miss ? '✗ ' : '✓ ') + t; $('#log').prepend(li); };
+function finish() {
+  running = false; tm.stop();
+  const n = found.size, tot = active.size, [e, t] = QA.rate(n / tot), missed = BUGS.filter(b => active.has(b.id) && !found.has(b.id));
+  QA.end(e, t, `You found ${n} of ${tot} bugs. Final score: ${score}.`, missed.length ? '<b>Missed:</b><ul>' + missed.map(b => `<li>${b.text}</li>`).join('') + '</ul>' : '', score);
+}
+$('#send').onclick = () => {
+  if (!running) return;
+  let body; const raw = $('#b').value.trim();
+  if (raw) { try { body = JSON.parse(raw); } catch (e) { $('#out').textContent = '400  invalid JSON in your request body'; last = null; $('#rep').disabled = true; return; } }
+  const tk = $('#a').value, q = { method:$('#m').value, path:$('#p').value.trim(), token:TOKENS[tk] || null, body };
+  const r = handle(q), cls = r.status < 300 ? 'g' : r.status < 500 ? 'y' : 'r';
+  $('#out').innerHTML = `<span class="pill ${cls}">${r.status}</span>  <span class="mini">${20 + Math.floor(Math.random() * 40)} ms</span>\n${r.body === null ? '(no body)' : JSON.stringify(r.body, null, 2)}`;
+  last = { q, r }; $('#rep').disabled = false;
+};
+document.querySelectorAll('[data-ex]').forEach(a => a.onclick = e => { e.preventDefault(); const [m, p, t, b] = a.dataset.ex.split('|'); $('#m').value = m; $('#p').value = p; $('#a').value = t; $('#b').value = b; });
+$('#rep').onclick = () => {
+  if (!running || !last) return;
+  const b = BUGS.find(b => active.has(b.id) && !found.has(b.id) && b.hit(last.q, last.r));
+  if (b) { found.add(b.id); const right = $('#rc').value === b.cat; score += right ? 100 : 50; addLog(b.text + (right ? '' : ` (it is a "${CATS[b.cat]}" bug, half points)`), false); }
+  else { score -= 25; addLog('Not a defect: ' + last.q.method + ' ' + last.q.path + ' → ' + last.r.status, true); }
+  $('#rep').disabled = true; last = null; draw();
+  if (found.size === active.size) finish();
+};
+$('#hint').onclick = () => {
+  if (!running || hints <= 0) return; const b = BUGS.find(b => active.has(b.id) && !found.has(b.id)); if (!b) return;
+  hints--; score -= 50; addLog('Hint: ' + b.hint, true); $('#hint').textContent = `💡 Hint (${hints})`; $('#hint').disabled = hints <= 0; draw();
+};
+QA.onStart(lv => {
+  const i = QA.LV.indexOf(lv); active = new Set(BUGS.filter(b => b.lv <= i).map(b => b.id));
+  found = new Set(); score = 0; hints = [3, 1, 0][i]; books = JSON.parse(JSON.stringify(BOOKS0)); nextId = 3; last = null; running = true;
+  $('#log').innerHTML = '<li class="empty">No bugs reported yet.</li>'; $('#out').textContent = 'Send a request to see the response.'; $('#rep').disabled = true;
+  $('#hint').textContent = `💡 Hint (${hints})`; $('#hint').disabled = hints <= 0;
+  tm?.stop(); tm = QA.timer([180, 150, 120][i], draw, finish);
+});
+</script></body></html>

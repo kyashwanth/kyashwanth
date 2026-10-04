@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QA Games — Yashwanth Reddy</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%9E%3C/text%3E%3C/svg%3E"><link rel="stylesheet" href="shared.css">
+<style>
+  h1 { font-size:clamp(32px,6vw,52px); letter-spacing:-.03em; margin:8px 0 8px; }
+  .lead { color:var(--muted); max-width:600px; margin:0 0 28px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; }
+  a.card { display:block; color:var(--fg); background:var(--card); border:1px solid var(--line); border-radius:18px; padding:22px; transition:transform .15s,border-color .15s; }
+  a.card:hover { transform:translateY(-3px); border-color:var(--a1); }
+  .e { font-size:34px; } a.card h2 { margin:6px 0 6px; font-size:19px; } a.card p { margin:0; color:var(--muted); font-size:15px; }
+</style></head>
+<body><div class="wrap">
+  <a href="../index.html">← Back to portfolio</a>
+  <h1>QA Games</h1>
+  <p class="lead">Eleven hands-on games, each about a different part of testing. Pick a level (easy, medium, hard) and your best scores are saved in this browser.</p>
+  <a class="card" href="interview.html" style="display:block;margin-bottom:18px;background:linear-gradient(120deg,rgba(124,140,255,.18),rgba(61,224,197,.12))"><span class="tag">New</span><h2 style="margin:6px 0">🎯 Interview Mode</h2><p>Three mock technical interviews, each chaining three games into one assessment with a scorecard and hiring verdict.</p></a>
+  <div class="grid" id="g"></div>
+</div>
+<script>
+  const G = [
+    ['bughunt','bughunt.html','🐞','Bug Hunt','Functional & UI testing','Inspect a checkout page and report the real defects.'],
+    ['api','api.html','🔌','API Lab','API testing','Send live requests to a mock API and catch the bugs.'],
+    ['boundary','boundary.html','📏','Boundary Lab','Boundary value analysis','Type edge values and expose off-by-one validators.'],
+    ['security','security.html','🛡️','Security Lab','Security testing','Break a demo app, then choose the right fix.'],
+    ['perf','perf.html','⚡','Perf Lab','Performance testing','Run load tests, read the metrics, find the bottleneck.'],
+    ['flaky','flaky.html','🎲','Flaky Test Hunt','Test automation reliability','Run the suite again and again. Which tests flake?'],
+    ['a11y','a11y.html','♿','Accessibility Audit','Accessibility testing','Inspect contrast, targets and labels on a sign-up page.'],
+    ['regression','regression.html','📡','Regression Radar','Regression & risk-based testing','Spend a test budget wisely to pin down the culprit.'],
+    ['data','data.html','🗄️','Data Detective','Data & database testing','Find rows that break the table\'s constraints.'],
+    ['pairwise','pairwise.html','🧩','Pairwise Puzzle','Combinatorial testing','Cover every pair with the fewest test runs.'],
+    ['triage','triage.html','🚑','Bug Triage Board','Test management','Plan a sprint by dragging bugs into columns.']
+  ];
+  const best = id => { try { return JSON.parse(localStorage.getItem('qa:best:' + id)) || {}; } catch (e) { return {}; } };
+  const esc = t => t.replace(/&/g, '&amp;');
+  document.getElementById('g').innerHTML = G.map(g => {
+    const b = best(g[0]), badges = ['easy', 'medium', 'hard'].filter(l => b[l] !== undefined).map(l => `<span class="mini" style="margin-right:10px">${l}: <b>${b[l]}</b></span>`).join('');
+    return `<a class="card" href="${g[1]}"><div class="e">${g[2]}</div><span class="tag">${esc(g[4])}</span><h2>${g[3]}</h2><p>${g[5]}</p><div style="margin-top:8px">${badges || '<span class="mini">Not played yet</span>'}</div></a>`;
+  }).join('');
+</script></body></html>

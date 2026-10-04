@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pairwise Puzzle — QA Games</title><link rel="stylesheet" href="shared.css"></head>
+<body><script src="shared.js"></script>
+<script>
+QA.frame({
+  id:'pairwise', max:{easy:300,medium:300,hard:300}, emoji:'🧩', title:'Pairwise Puzzle', aspect:'Combinatorial testing',
+  intro:'Testing every combination is too slow. Choose the fewest test runs that still cover <b>every pair</b> of values across all settings. The bar shows your coverage live.',
+  levelInfo:{ easy:'Browser × OS × Language (3×2×2). Best plan: 6 runs.', medium:'Browser × OS × Language (3×3×2). Best plan: 9 runs.', hard:'Browser × OS × Language × Network (3×3×2×2). Best plan: 9 runs.' }
+});
+const LV = {
+  easy:{ P:[['Chrome','Firefox','Safari'],['Windows','macOS'],['EN','FR']], opt:6 },
+  medium:{ P:[['Chrome','Firefox','Safari'],['Windows','macOS','Android'],['EN','FR']], opt:9 },
+  hard:{ P:[['Chrome','Firefox','Safari'],['Windows','macOS','Android'],['EN','FR'],['WiFi','4G']], opt:9 }
+};
+const stage = QA.$('#stage'), $ = QA.$;
+let L, combos, ALLP, picked, running = false;
+const pairs = c => { const r = []; for (let i = 0; i < c.length; i++) for (let j = i + 1; j < c.length; j++) r.push(`${i}:${c[i]}|${j}:${c[j]}`); return r; };
+const name = c => c.map((v, i) => L.P[i][v]).join(' · ');
+function update() {
+  const cov = new Set([...picked].flatMap(i => pairs(combos[i]))), left = ALLP.size - cov.size;
+  QA.hud([`Runs: ${picked.size}`, `Pairs: ${cov.size} / ${ALLP.size}`, `Target: ${L.opt}`]);
+  $('#bar').style.width = (cov.size / ALLP.size * 100) + '%';
+  $('#miss').textContent = left ? `${left} pair${left > 1 ? 's' : ''} still uncovered.` : 'Every pair is covered. Can you do it with fewer runs?';
+  $('#sub').disabled = left > 0;
+}
+QA.onStart(lv => {
+  L = LV[lv]; combos = L.P.reduce((acc, vals, i) => acc.flatMap(a => vals.map((_, v) => [...a, v])), [[]]);
+  ALLP = new Set(combos.flatMap(pairs)); picked = new Set(); running = true;
+  stage.innerHTML = `<div class="panel"><div class="prompt">Choose your test runs (${combos.length} possible).</div><div style="height:8px;background:rgba(255,255,255,.08);border-radius:6px;margin:10px 0"><div id="bar" style="height:100%;width:0;background:linear-gradient(90deg,var(--a1),var(--a2));border-radius:6px;transition:width .2s"></div></div><p class="hint" id="miss"></p>
+    <div class="opts cols" id="grid">${combos.map((c, i) => `<button class="opt" data-i="${i}">${name(c)}</button>`).join('')}</div>
+    <div class="actions"><button class="btn" id="sub" disabled>Submit plan</button><button class="btn small ghost" id="clr">Clear</button></div></div>`;
+  stage.querySelectorAll('.opt').forEach(b => b.onclick = () => { const i = +b.dataset.i; picked.has(i) ? picked.delete(i) : picked.add(i); b.classList.toggle('sel'); update(); });
+  $('#clr').onclick = () => { picked.clear(); stage.querySelectorAll('.opt').forEach(b => b.classList.remove('sel')); update(); };
+  $('#sub').onclick = () => {
+    const n = picked.size, score = Math.round(300 * L.opt / n), [e, t] = n === L.opt ? ['🏆', `Optimal: ${n} runs!`] : n <= L.opt + 2 ? ['🥈', `Nice: ${n} runs`] : ['🧐', `Covered, but ${n} runs is wasteful`];
+    QA.end(e, t, `${n} runs cover all ${ALLP.size} pairs, versus ${combos.length} for every combination (${Math.round((1 - n / combos.length) * 100)}% saved). Score ${score}.`, 'Most defects are triggered by one or two settings, so pairwise gives strong coverage for far fewer tests.', score);
+  };
+  update();
+});
+</script></body></html>

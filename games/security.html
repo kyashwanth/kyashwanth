@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security Lab — QA Games</title><link rel="stylesheet" href="shared.css"></head>
+<body><script src="shared.js"></script>
+<script>
+QA.frame({
+  id:'security', max:{easy:300,medium:450,hard:600}, emoji:'🛡️', title:'Security Lab', aspect:'Security testing',
+  intro:'Penetration-test a deliberately vulnerable <b>demo app</b> (simulated entirely in this page). Craft inputs that break each form, then pick the right fix. Skills here are for defending your own apps.',
+  levelInfo:{ easy:'Login + search, no filters. 240s.', medium:'Adds a file viewer; some naive filters. 240s.', hard:'Adds a ping tool; filters need cleverer inputs. 240s.' }
+});
+const TARGETS = {
+  login: { name:'Login form', fields:[['user','Username'],['pass','Password']], hint:'Make the SQL condition always true. Try a quote then OR 1=1.',
+    run:(v, lv) => {
+      const s = v.user + ' ' + v.pass;
+      if (lv === 'hard' && /\bOR\b/.test(s)) return { text:'🧱 WAF: blocked suspicious input.' };
+      const query = `SELECT * FROM users WHERE name='${v.user}' AND pass='${v.pass}'`;
+      const show = lv === 'easy' ? `Query: ${query}\n` : '';
+      if (/'\s*or\s+['"]?(\w+)['"]?\s*=\s*['"]?\1/i.test(s) || /'\s*(--|#)/.test(v.user)) return { text:show + 'Welcome, admin! (authentication bypassed)', hit:true };
+      return { text:show + (v.user === 'demo' && v.pass === 'demo123' ? 'Welcome, demo.' : 'Invalid credentials.') };
+    },
+    fix:{ q:'What is the right fix for the login bug?', opts:['Use parameterized queries (prepared statements)', 'Remove all quote characters from input', 'Hide the error messages'], ok:0, why:'Parameterized queries keep data separate from SQL, so input can never change the query.' } },
+  search: { name:'Search box', fields:[['q','Search term']], hint:'The page echoes your input as HTML. Inject a tag that runs script, such as an img with an error handler.',
+    run:(v, lv) => {
+      let s = v.q; if (lv !== 'easy') s = s.replace(/<script/i, ''); if (lv === 'hard') s = s.replace(/onerror|onload/i, '');
+      const x = /<\s*script\b|<[a-z]+[^>]*\son[a-z]+\s*=|javascript:/i.test(s);
+      return { text:`Results for: ${s}\n` + (x ? '⚠ Rendered unescaped: the browser would run your payload.' : 'Shown as harmless text.'), hit:x };
+    },
+    fix:{ q:'What is the right fix for the search bug?', opts:['HTML-encode output (context-aware escaping)', 'Block the word "script"', 'Limit input length to 50 characters'], ok:0, why:'Escaping on output neutralizes markup no matter what the attacker types. Blocklists are always bypassable.' } },
+  files: { name:'File viewer', fields:[['path','File name (served from /app/public/)']], hint:'Climb out of /app/public with ../ and ask for /etc/passwd. Filters may need a trick.',
+    run:(v, lv) => {
+      const trav = s => /\.\.[\/\\]/.test(s), dec = s => { try { return decodeURIComponent(s); } catch (e) { return s; } };
+      let p = v.path;
+      if (lv === 'medium') p = p.replace(/\.\.\//g, '');
+      if (lv === 'hard') { const once = dec(p); if (trav(once)) return { text:'🧱 WAF: path traversal blocked.' }; p = dec(once); }
+      if (trav(p)) return { text:'root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1::/usr/sbin:/usr/sbin/nologin', hit:true };
+      if (/^(readme\.txt|logo\.png)$/i.test(p)) return { text:'(file contents…)' };
+      return { text:'404 file not found' };
+    },
+    fix:{ q:'What is the right fix for the file viewer?', opts:['Resolve the full path and verify it stays inside the public folder', 'Blocklist the string "../"', 'Rename the public folder'], ok:0, why:'Canonicalize first, then check the result is under the base directory. String filters miss encodings.' } },
+  ping: { name:'Ping tool', fields:[['host','Host to ping']], hint:'The host goes into a shell command. Add a second command with a separator.',
+    run:(v, lv) => {
+      if (lv === 'hard' && /;|&&/.test(v.host)) return { text:'🧱 WAF: blocked.' };
+      const x = /[;&|`]|\$\(/.test(v.host);
+      return { text:`$ ping -c1 ${v.host}\n` + (x ? 'PING ok\nuid=0(root) gid=0(root)  ← your extra command ran' : '64 bytes from host: icmp_seq=1'), hit:x };
+    },
+    fix:{ q:'What is the right fix for the ping tool?', opts:['Never use a shell: call ping with an argument list and validate the host', 'Block semicolons', 'Run the server as root so it has permission'], ok:0, why:'Without a shell there is nothing to inject into. Validate the host format as defence in depth.' } }
+};
+const SETS = { easy:['login','search'], medium:['login','search','files'], hard:['login','search','files','ping'] };
+const $ = QA.$; let ks, state, score, tm, lv0, running = false;
+const draw = (left = tm ? tm.left() : 0) => QA.hud([`Exploited: ${ks ? ks.filter(k => state[k].hit).length : 0} / ${ks ? ks.length : 0}`, `Score: ${score || 0}`, `⏱ ${left}s`]);
+function finish() {
+  running = false; tm.stop();
+  const total = ks.length * 150, [e, t] = QA.rate(Math.max(0, score) / total);
+  QA.end(e, t, `Score ${score} of ${total}. Exploited ${ks.filter(k => state[k].hit).length} of ${ks.length}; fixes chosen correctly: ${ks.filter(k => state[k].fixed === 'ok').length}.`, '', score);
+}
+function build() {
+  $('#stage').innerHTML = `<div class="two">${ks.map(k => { const T = TARGETS[k]; return `<div class="panel" data-k="${k}"><h2>${T.name}</h2>
+    ${T.fields.map(f => `<label class="l">${f[1]}</label><input class="in" data-f="${f[0]}">`).join('')}
+    <div class="actions"><button class="btn small send">Send</button><button class="btn small ghost hint">💡 Hint (−25)</button></div>
+    <div class="res out" style="margin-top:10px">Waiting for input…</div><div class="fixbox"></div></div>`; }).join('')}</div>`;
+  document.querySelectorAll('.panel[data-k]').forEach(p => {
+    const k = p.dataset.k, T = TARGETS[k];
+    p.querySelector('.send').onclick = () => {
+      if (!running) return;
+      const vals = {}; p.querySelectorAll('input').forEach(i => vals[i.dataset.f] = i.value);
+      const r = T.run(vals, lv0); p.querySelector('.out').textContent = r.text;
+      if (r.hit && !state[k].hit) {
+        state[k].hit = true; score += 100; p.querySelector('.out').insertAdjacentHTML('beforeend', '\n\n✅ Vulnerability exploited! +100');
+        p.querySelector('.fixbox').innerHTML = `<label class="l">${T.fix.q}</label><div class="opts">${T.fix.opts.map((o, i) => `<button class="opt" data-i="${i}">${o}</button>`).join('')}</div><div class="fb"></div>`;
+        p.querySelectorAll('.fixbox .opt').forEach(b => b.onclick = () => {
+          if (state[k].fixed) return; const ok = +b.dataset.i === T.fix.ok; state[k].fixed = ok ? 'ok' : 'bad'; if (ok) score += 50;
+          b.classList.add(ok ? 'ok' : 'bad'); p.querySelector('.fb').className = 'fb ' + (ok ? 'good' : 'miss'); p.querySelector('.fb').innerHTML = (ok ? '✓ ' : '✗ The best fix: ' + T.fix.opts[T.fix.ok] + '. ') + T.fix.why; draw();
+          if (ks.every(k => state[k].hit && state[k].fixed)) finish();
+        });
+      }
+      draw();
+    };
+    p.querySelector('.hint').onclick = e => { if (!running || state[k].hinted) return; state[k].hinted = true; score -= 25; p.querySelector('.out').textContent = '💡 ' + T.hint; draw(); e.target.disabled = true; };
+  });
+}
+QA.onStart(lv => { lv0 = lv; ks = SETS[lv]; state = Object.fromEntries(ks.map(k => [k, {}])); score = 0; running = true; build(); tm?.stop(); tm = QA.timer(240, draw, finish); });
+</script></body></html>

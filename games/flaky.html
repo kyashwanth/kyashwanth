@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flaky Test Hunt — QA Games</title><link rel="stylesheet" href="shared.css"></head>
+<body><script src="shared.js"></script>
+<script>
+QA.frame({
+  id:'flaky', max:{easy:500,medium:700,hard:900}, emoji:'🎲', title:'Flaky Test Hunt', aspect:'Test automation reliability',
+  intro:'Run the suite repeatedly and watch how each test behaves. Then classify every test as stable, flaky or genuinely broken. Beware: infrastructure outages make good tests fail too.',
+  levelInfo:{ easy:'5 tests, 8 suite runs.', medium:'7 tests, 10 runs, one infrastructure outage hides in the data.', hard:'9 tests, 12 runs, two outages and a very rare flake.' }
+});
+const T = (n, seq, truth, err) => ({ n, seq, truth, err });
+const LV = {
+  easy:{ runs:8, infra:[], tests:[ T('login › valid user','PPPPPPPPPPPP','stable'), T('checkout › card payment','PPPPPPPPPPPP','stable'), T('refund › total','FFFFFFFFFFFF','broken','AssertionError: expected 10.00, got 10.01'), T('search › price filter','PPTPPPTPPTPP','flaky'), T('profile › avatar upload','PPPPPTPPPPPP','flaky') ] },
+  medium:{ runs:10, infra:[3], tests:[ T('login › valid user','PPPPPPPPPPPP','stable'), T('checkout › card payment','PPPPPPPPPPPP','stable'), T('refund › total','FFFFFFFFFFFF','broken','AssertionError: expected 10.00, got 10.01'), T('orders › recent list','PPPPFFFFFFFF','broken','AssertionError: expected 5 rows, got 0'), T('search › price filter','PPTPPPTPPTPP','flaky'), T('profile › avatar upload','PPPPPTPPPPPP','flaky'), T('profile › edit name','PPPPPPPPPPPP','stable') ] },
+  hard:{ runs:12, infra:[3,8], tests:[ T('login › valid user','PPPPPPPPPPPP','stable'), T('checkout › card payment','PPPPPPPPPPPP','stable'), T('refund › total','FFFFFFFFFFFF','broken','AssertionError: expected 10.00, got 10.01'), T('orders › recent list','PPPPFFFFFFFF','broken','AssertionError: expected 5 rows, got 0'), T('search › price filter','PPTPPPTPPTPP','flaky'), T('profile › avatar upload','PPPPPTPPPPPP','flaky'), T('banner › shows today','PPFPPFPPFPPF','flaky','AssertionError: expected "Oct 3", got "Oct 4"'), T('cart › add many items','PPPPPPPTPPPP','flaky'), T('profile › edit name','PPPPPPPPPPPP','stable') ] }
+};
+const stage = QA.$('#stage'), $ = QA.$;
+stage.innerHTML = `<div class="panel"><h2>Suite results</h2><div style="overflow-x:auto"><table class="matrix" id="mx"></table></div>
+  <div class="res" id="dt" style="margin-top:12px">Click a result cell to read its error.</div>
+  <div class="actions"><button class="btn" id="run">Run suite ▶</button><button class="btn" id="sub">Submit classification</button></div></div>`;
+let L, k, score = 0, running = false, lv0;
+const cellOf = (t, i) => L.infra.includes(i) ? 'I' : t.seq[i];
+const msg = (t, c) => c === 'I' ? 'Error: connect ECONNREFUSED test-db:5432 (CI node ci-7)' : c === 'F' ? (t.err || 'AssertionError: expected true, got false') : c === 'T' ? 'TimeoutError: waiting for selector .ready (5000ms)' : 'passed';
+function render() {
+  const head = `<tr><th>Test</th>${Array.from({ length:k }, (_, i) => `<th>#${i + 1}</th>`).join('')}<th>Verdict</th></tr>`;
+  $('#mx').innerHTML = head + L.tests.map((t, ti) => `<tr><td>${t.n}</td>${Array.from({ length:k }, (_, i) => { const c = cellOf(t, i); return `<td><span class="cell ${c.toLowerCase()}" data-t="${ti}" data-i="${i}">${c === 'P' ? '✓' : c === 'I' ? '🔥' : c === 'T' ? '⏱' : '✗'}</span></td>`; }).join('')}
+    <td><select class="in" data-v="${ti}" style="padding:4px"><option value="">?</option><option value="stable">Stable</option><option value="flaky">Flaky</option><option value="broken">Broken</option></select></td></tr>`).join('');
+  document.querySelectorAll('.cell').forEach(c => c.onclick = () => { const t = L.tests[+c.dataset.t], ch = cellOf(t, +c.dataset.i); $('#dt').textContent = `${t.n} · run #${+c.dataset.i + 1}\n${msg(t, ch)}`; });
+}
+const draw = () => QA.hud([`Runs left: ${L ? L.runs - k : 0}`, `Score: ${score}`]);
+$('#run').onclick = () => {
+  if (!running || k >= L.runs) return; const vals = [...document.querySelectorAll('select[data-v]')].map(s => s.value);
+  k++; render(); document.querySelectorAll('select[data-v]').forEach((s, i) => s.value = vals[i]); draw();
+};
+$('#sub').onclick = () => {
+  if (!running) return; const sel = [...document.querySelectorAll('select[data-v]')];
+  if (sel.some(s => !s.value)) return $('#dt').textContent = 'Classify every test before submitting.';
+  running = false; let ok = 0; const wrong = [];
+  sel.forEach((s, i) => { if (s.value === L.tests[i].truth) ok++; else wrong.push(`<li><b>${L.tests[i].n}</b> is <b>${L.tests[i].truth}</b> (you said ${s.value}).</li>`); });
+  score = ok * 100; const [e, t] = QA.rate(ok / L.tests.length);
+  QA.end(e, t, `${ok} of ${L.tests.length} classified correctly. Score ${score}.`, (wrong.length ? '<b>Review:</b><ul>' + wrong.join('') + '</ul>' : '') + `<div class="mini">Tip: failures that hit every test at once (🔥) are infrastructure, not test bugs.</div>`, score);
+};
+QA.onStart(lv => { lv0 = lv; L = LV[lv]; k = 0; score = 0; running = true; $('#dt').textContent = 'Click a result cell to read its error.'; render(); draw(); });
+</script></body></html>

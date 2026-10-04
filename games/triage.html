@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bug Triage Board — QA Games</title><link rel="stylesheet" href="shared.css"></head>
+<body><script src="shared.js"></script>
+<script>
+QA.frame({
+  id:'triage', max:{easy:300,medium:300,hard:300}, emoji:'🚑', title:'Bug Triage Board', aspect:'Test management',
+  intro:'Plan the sprint. Drag bug cards (or use the buttons) into columns. The sprint has limited capacity: fix what matters most, never skip a critical bug, and close duplicates as Won\'t fix.',
+  levelInfo:{ easy:'6 bugs, capacity 8.', medium:'9 bugs including a duplicate, capacity 10.', hard:'12 bugs, two duplicates, tight capacity 12.' }
+});
+const B = (id, t, value, effort, extra = {}) => ({ id, t, value, effort, ...extra });
+const ALL = [
+  B(1,'Payment charged twice for 2% of orders',10,5,{crit:true}), B(2,'Typo in footer: "Privcay Policy"',1,1), B(3,'CSV export fails above 10k rows (workaround: export by month)',4,3),
+  B(4,'Login fails on Safari 16 (about 5% of users)',8,3), B(5,'Logo is 2px off on tablets',1,1), B(6,'Admin page shows other tenants\' data',10,2,{crit:true}),
+  B(7,'Search results in wrong order for some queries',5,3), B(8,'Duplicate of the Safari 16 login bug (reported again)',0,0,{dup:true}), B(9,'Dark mode: placeholder text unreadable',4,1),
+  B(10,'Homepage logo is wrong colour; launch is tomorrow',6,1), B(11,'Invoice tax rounds wrong by 1 cent on 0.5% of invoices',6,4), B(12,'Duplicate of the cross-tenant data leak',0,0,{dup:true})
+];
+const SETS = { easy:{ ids:[1,2,3,4,5,6], cap:8 }, medium:{ ids:[1,2,3,4,5,6,7,8,9], cap:10 }, hard:{ ids:[1,2,3,4,5,6,7,8,9,10,11,12], cap:12 } };
+const COLS = [['inbox','Inbox'],['sprint','This sprint'],['next','Next sprint'],['backlog','Backlog'],['wont',"Won't fix"]];
+const stage = QA.$('#stage'), $ = QA.$;
+let bugs, cap, place, score = 0, running = false;
+const used = () => bugs.filter(b => place[b.id] === 'sprint').reduce((s, b) => s + b.effort, 0);
+const draw = () => QA.hud([`Sprint: ${used()} / ${cap} pts`, `Unsorted: ${bugs.filter(b => place[b.id] === 'inbox').length}`]);
+function move(id, col) {
+  if (!running) return; const b = bugs.find(b => b.id === id);
+  if (col === 'sprint' && place[id] !== 'sprint' && used() + b.effort > cap) { $('#msg').textContent = `No room: "${b.t}" needs ${b.effort} pts, only ${cap - used()} left.`; return; }
+  $('#msg').textContent = ''; place[id] = col; render();
+}
+function render() {
+  stage.innerHTML = `<p class="mini" id="msg"></p><div class="board">${COLS.map(([k, n]) => `<div class="col" data-c="${k}"><h3>${n}${k === 'sprint' ? ` (${used()}/${cap})` : ''}</h3>${bugs.filter(b => place[b.id] === k).map(b => `<div class="bug" draggable="true" data-id="${b.id}"><b>${b.t}</b><div class="meta">${b.dup ? 'looks like a duplicate' : `impact ${b.value}/10 · effort ${b.effort} pts`}${b.crit ? ' · 🔴 critical' : ''}</div><div class="mv">${COLS.filter(c => c[0] !== 'inbox' && c[0] !== k).map(c => `<button data-m="${c[0]}">${c[1]}</button>`).join('')}</div></div>`).join('')}</div>`).join('')}</div>
+    <div class="actions"><button class="btn" id="sub">Submit sprint plan</button></div>`;
+  document.querySelectorAll('.bug').forEach(el => {
+    el.ondragstart = e => e.dataTransfer.setData('text/plain', el.dataset.id);
+    el.querySelectorAll('button').forEach(b => b.onclick = () => move(+el.dataset.id, b.dataset.m));
+  });
+  document.querySelectorAll('.col').forEach(c => {
+    c.ondragover = e => { e.preventDefault(); c.classList.add('over'); }; c.ondragleave = () => c.classList.remove('over');
+    c.ondrop = e => { e.preventDefault(); c.classList.remove('over'); move(+e.dataTransfer.getData('text/plain'), c.dataset.c); };
+  });
+  $('#sub').onclick = submit; draw();
+}
+function submit() {
+  if (!running) return; running = false;
+  const real = bugs.filter(b => !b.dup), crits = real.filter(b => b.crit), rest = real.filter(b => !b.crit);
+  const room = cap - crits.reduce((s, b) => s + b.effort, 0); let bestV = -1, bestSet = [];
+  for (let m = 0; m < 1 << rest.length; m++) { let e = 0, v = 0, set = []; rest.forEach((b, i) => { if (m >> i & 1) { e += b.effort; v += b.value; set.push(b); } }); if (e <= room && v > bestV) { bestV = v; bestSet = set; } }
+  const optV = bestV + crits.reduce((s, b) => s + b.value, 0);
+  const sprintV = real.filter(b => place[b.id] === 'sprint').reduce((s, b) => s + b.value, 0);
+  const critMissed = crits.filter(b => place[b.id] !== 'sprint').length, dupWrong = bugs.filter(b => b.dup && place[b.id] !== 'wont').length;
+  score = Math.max(0, Math.round(300 * sprintV / optV) - 100 * critMissed - 50 * dupWrong);
+  const [e, t] = QA.rate(score / 300);
+  QA.end(e, t, `Sprint value ${sprintV} of a possible ${optV}. Final score: ${score}.`,
+    `<b>Best plan:</b><ul>${[...crits, ...bestSet].map(b => `<li>${b.t}</li>`).join('')}</ul>` + (critMissed ? `<div>−${100 * critMissed}: critical bugs left out of the sprint.</div>` : '') + (dupWrong ? `<div>−${50 * dupWrong}: duplicates not closed as Won't fix.</div>` : ''), score);
+}
+QA.onStart(lv => { const S = SETS[lv]; bugs = ALL.filter(b => S.ids.includes(b.id)); cap = S.cap; place = Object.fromEntries(bugs.map(b => [b.id, 'inbox'])); running = true; render(); });
+</script></body></html>

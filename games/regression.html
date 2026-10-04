@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regression Radar — QA Games</title><link rel="stylesheet" href="shared.css"></head>
+<body><script src="shared.js"></script>
+<script>
+QA.frame({
+  id:'regression', max:{easy:270,medium:270,hard:240}, emoji:'📡', title:'Regression Radar', aspect:'Regression & risk-based testing',
+  intro:'A change shipped and something is broken. You have a limited test-time budget: choose which tests to run, read which fail, and deduce which module contains the bug.',
+  levelInfo:{ easy:'2 scenarios, generous budget, module-labelled tests.', medium:'2 scenarios, tighter budget, bugs ripple through dependants.', hard:'2 scenarios, tight budget, shared libraries and red herrings.' }
+});
+const MODS = ['Auth','Cart','Payments','Orders','Search','Profile','Notifications','SharedUtils'];
+const t = (n, c, cov) => ({ n, c, cov });
+const SC = {
+  easy:[
+    { change:'payments/tax.js', culprit:'Payments', budget:16, tests:[t('Login',3,['Auth']),t('Add to cart',2,['Cart']),t('Pay by card',5,['Cart','Payments']),t('Refund an order',4,['Orders','Payments']),t('Order history',3,['Orders']),t('Keyword search',2,['Search']),t('Edit profile',2,['Profile','Auth'])] },
+    { change:'search/index.js', culprit:'Search', budget:12, tests:[t('Login',3,['Auth']),t('Keyword search',2,['Search']),t('Filter by price',3,['Search']),t('Pay by card',5,['Cart','Payments']),t('Edit profile',2,['Profile','Auth']),t('Order history',3,['Orders'])] }
+  ],
+  medium:[
+    { change:'cart/discount.js', culprit:'Cart', budget:14, tests:[t('Sign up',3,['Auth','Profile']),t('Apply promo code',3,['Cart']),t('Checkout with card',5,['Cart','Payments','Orders']),t('Reorder a past order',4,['Orders','Cart']),t('Track delivery',3,['Orders','Notifications']),t('Update address',2,['Profile']),t('Search and sort',3,['Search'])] },
+    { change:'notifications/sms.js', culprit:'Notifications', budget:13, tests:[t('Login',3,['Auth']),t('Password reset by SMS',4,['Auth','Notifications']),t('Order confirmation email',4,['Orders','Notifications']),t('Checkout with card',5,['Cart','Payments','Orders']),t('Search',2,['Search']),t('Edit profile',2,['Profile'])] }
+  ],
+  hard:[
+    { change:'profile/avatar.js, utils/money.js', culprit:'SharedUtils', budget:14, tests:[t('Avatar upload',3,['Profile']),t('Cart total',2,['Cart','SharedUtils']),t('Pay by card',5,['Payments','Cart','SharedUtils']),t('Invoice PDF',4,['Orders','SharedUtils']),t('Login',3,['Auth']),t('Search',2,['Search']),t('Edit profile',2,['Profile','Auth']),t('Track delivery',3,['Orders','Notifications'])] },
+    { change:'auth/session.js, utils/date.js', culprit:'Auth', budget:10, tests:[t('Login',3,['Auth']),t('Edit profile',2,['Profile','Auth']),t('View orders (signed in)',4,['Orders','Auth']),t('Search (guest)',2,['Search']),t('Add to cart (guest)',2,['Cart']),t('Pay as guest',5,['Cart','Payments'])] }
+  ]
+};
+const stage = QA.$('#stage'), $ = QA.$;
+let list, si, sc, picks, ran, spent, score, running = false, ok;
+const draw = () => QA.hud([`Scenario ${Math.min(si + 1, list.length)} / ${list.length}`, `Budget: ${sc ? sc.budget - spent : 0} min left`, `Score: ${score}`]);
+function show() {
+  sc = list[si]; picks = new Set(); ran = new Map(); spent = 0;
+  stage.innerHTML = `<div class="panel"><h2>Scenario ${si + 1}</h2><p>🔧 <b>Files changed:</b> <code>${sc.change}</code>. Regression tests are failing somewhere. Spend up to <b>${sc.budget} minutes</b> of test time to find the culprit module.</p>
+    <div class="stack" id="tl">${sc.tests.map((x, i) => `<div class="tcard" data-i="${i}" style="cursor:pointer"><b>${x.n}</b> <span class="mini">· ${x.c} min</span> <span class="res-pill"></span><div>${x.cov.map(c => `<span class="tag2">${c}</span>`).join('')}</div></div>`).join('')}</div>
+    <div class="actions"><button class="btn" id="go2">Run selected tests</button></div><div class="fb" id="fb"></div>
+    <label class="l">Which module contains the bug?</label><select class="in" id="cu"><option value="">Choose…</option>${MODS.map(m => `<option>${m}</option>`).join('')}</select>
+    <div class="actions"><button class="btn" id="sub2">Submit culprit</button></div></div>`;
+  document.querySelectorAll('.tcard').forEach(c => c.onclick = () => { const i = +c.dataset.i; if (ran.has(i)) return; picks.has(i) ? picks.delete(i) : picks.add(i); c.classList.toggle('sel'); });
+  $('#go2').onclick = () => {
+    const cost = [...picks].reduce((s, i) => s + sc.tests[i].c, 0), fb = $('#fb');
+    if (!picks.size) return; if (spent + cost > sc.budget) { fb.className = 'fb miss'; fb.textContent = `Over budget: that run costs ${cost} min but only ${sc.budget - spent} remain.`; return; }
+    spent += cost; fb.className = 'fb'; fb.textContent = '';
+    picks.forEach(i => { const fail = sc.tests[i].cov.includes(sc.culprit); ran.set(i, fail); const c = document.querySelector(`.tcard[data-i="${i}"]`); c.classList.remove('sel'); c.querySelector('.res-pill').innerHTML = `<span class="pill ${fail ? 'r' : 'g'}">${fail ? 'FAIL' : 'PASS'}</span>`; });
+    picks.clear(); draw();
+  };
+  $('#sub2').onclick = () => {
+    const v = $('#cu').value; if (!v) return; const right = v === sc.culprit, gain = right ? 100 + (sc.budget - spent) * 5 : 0; score += gain; if (right) ok++;
+    const fb = $('#fb'); fb.className = 'fb ' + (right ? 'good' : 'miss');
+    fb.innerHTML = right ? `✓ Correct: <b>${sc.culprit}</b>. +${gain} (budget left earns bonus).` : `✗ It was <b>${sc.culprit}</b>: only tests covering it failed, and no passing test touched it.`;
+    $('#sub2').remove(); $('#go2').remove(); draw();
+    fb.insertAdjacentHTML('afterend', `<div class="actions"><button class="btn" id="nx">${si === list.length - 1 ? 'Finish' : 'Next scenario →'}</button></div>`);
+    $('#nx').onclick = () => { si++; si < list.length ? show() : done(); };
+  };
+  draw();
+}
+function done() { running = false; const [e, t] = QA.rate(ok / list.length); QA.end(e, t, `You found ${ok} of ${list.length} culprits. Final score: ${score}.`, '', score); }
+QA.onStart(lv => { list = SC[lv]; si = 0; score = 0; ok = 0; running = true; show(); });
+</script></body></html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perf Lab — QA Games</title><link rel="stylesheet" href="shared.css"></head>
+<body><script src="shared.js"></script>
+<script>
+QA.frame({
+  id:'perf', max:{easy:150,medium:300,hard:300}, emoji:'⚡', title:'Perf Lab', aspect:'Performance testing',
+  intro:'Run load tests against a simulated service. The SLA is <b>p95 latency ≤ 500 ms</b>. Choose users and duration, read the chart and the server metrics, then complete the missions.',
+  levelInfo:{ easy:'Find the breaking load and diagnose it. 8 test runs.', medium:'A slow memory leak joins the party: also find it with a long soak test. 10 runs.', hard:'Higher capacity and a subtler leak. 10 runs.' }
+});
+const CFG = { easy:{ C:320, leak:0, runs:8 }, medium:{ C:280, leak:3, runs:10 }, hard:{ C:400, leak:1.6, runs:10 } };
+const lat = (u, t, c) => { const load = u / c.C; let l = 120 * (1 + 6 * Math.pow(Math.min(load, 1.2), 4)); if (load > 1) l *= 1 + (load - 1) * 6; return l + c.leak * t * (.5 + Math.min(load, 1)); };
+const sim = (u, dur, c) => Array.from({ length:11 }, (_, i) => Math.round(lat(u, dur * i / 10, c)));
+const stage = QA.$('#stage'), $ = QA.$;
+stage.innerHTML = `<div class="two"><div class="stack"><div class="panel"><h2>Load test</h2>
+  <label class="l">Virtual users: <b id="uv">100</b></label><input type="range" id="u" min="10" max="1000" step="10" value="100" style="width:100%">
+  <label class="l">Duration</label><select class="in" id="d"><option value="5">5 minutes</option><option value="30">30 minutes</option><option value="120">2 hours (soak)</option></select>
+  <div class="actions"><button class="btn" id="run">Run test ▶</button></div></div>
+  <div class="panel"><h2>Missions</h2><div id="ms"></div></div></div>
+  <div class="stack"><div class="panel"><h2>p95 latency over the run</h2><svg class="chart" id="ch" viewBox="0 0 400 200" preserveAspectRatio="none"></svg><div id="mt" class="res" style="margin-top:10px">Run a test to see metrics.</div></div>
+  <div class="panel"><h2>Report</h2>
+   <div class="actions"><button class="btn small" id="mark">📍 Mark SLA breaking point</button><button class="btn small" id="deg">🐞 Report degradation over time</button></div>
+   <label class="l">Diagnose</label><select class="in" id="dg"><option value="">Choose a root cause…</option><option value="pool">Connection / thread pool exhausted</option><option value="leak">Memory leak</option><option value="sql">Slow SQL query</option><option value="cache">Cold cache</option></select>
+   <div class="actions"><button class="btn small" id="diag">Submit diagnosis</button><button class="btn small ghost" id="fin">Finish</button></div><div class="fb" id="fb"></div></div></div></div>`;
+let cfg, done, score, runs, last, running = false, brk, lv0;
+const missions = () => lv0 === 'easy' ? ['mark', 'dpool'] : ['mark', 'dpool', 'deg', 'dleak'];
+const NAMES = { mark:'Find the load where p95 first breaks the 500 ms SLA', dpool:'Diagnose why it breaks under load', deg:'Show latency degrading over time at a safe load', dleak:'Diagnose the degradation' };
+const draw = () => { QA.hud([`Runs left: ${runs}`, `Score: ${score}`]); $('#ms').innerHTML = missions().map(m => `<div class="mini" style="padding:3px 0">${done.has(m) ? '✅' : '⬜'} ${NAMES[m]}</div>`).join(''); };
+const say = (t, good) => { const f = $('#fb'); f.className = 'fb ' + (good ? 'good' : 'miss'); f.textContent = t; };
+function finish() {
+  running = false; const total = missions().reduce((s, m) => s + (m[0] === 'd' && m !== 'deg' ? 50 : 100), 0), [e, t] = QA.rate(score / total);
+  QA.end(e, t, `Missions complete: ${done.size} of ${missions().length}. Score ${score} of ${total}.`, `The SLA actually broke at about ${brk} users${cfg.leak ? ', and latency leaked upward over long runs' : ''}.`, score);
+}
+$('#u').oninput = () => $('#uv').textContent = $('#u').value;
+$('#run').onclick = () => {
+  if (!running || runs <= 0) return;
+  const u = +$('#u').value, dur = +$('#d').value, pts = sim(u, dur, cfg); runs--;
+  const x = i => i * 40, y = v => 200 - Math.min(v, 2000) / 2000 * 190 - 5;
+  $('#ch').innerHTML = `<line x1="0" x2="400" y1="${y(500)}" y2="${y(500)}" stroke="#ff6b81" stroke-dasharray="4 4"/><text x="4" y="${y(500) - 4}" fill="#ff6b81" font-size="10">SLA 500 ms</text>
+    <polyline fill="none" stroke="#3de0c5" stroke-width="2.5" points="${pts.map((v, i) => x(i) + ',' + y(v)).join(' ')}"/><text x="4" y="12" fill="#98a0b5" font-size="10">axis max 2000 ms</text>`;
+  const load = u / cfg.C, end = pts[10];
+  $('#mt').textContent = `users ${u}   duration ${dur} min\np95 start ${pts[0]} ms   end ${end} ms   ${end > 500 ? 'SLA BREACHED' : 'within SLA'}\nCPU ${Math.round(18 + Math.min(load, 1.2) * 20)}%   DB pool ${Math.min(100, Math.round(load / .85 * 100))}/100 in use\nheap ${Math.round(300 + cfg.leak * dur * 2.5 * (.5 + Math.min(load, 1)))} MB (start 300 MB)`;
+  last = { u, dur, pts }; draw(); if (runs <= 0) say('Out of test runs. Submit what you know, then Finish.', false);
+};
+$('#mark').onclick = () => {
+  if (!running) return; if (!last || last.u !== +$('#u').value) return say('Run a test at exactly this user count first, then mark it.', false);
+  if (done.has('mark')) return;
+  if (Math.abs(last.u - brk) / brk <= .12) { done.add('mark'); score += 100; say(`Good: that is within 12% of the real breaking point.`, true); } else { score -= 25; say('Not quite: at that load the service is not at its limit (or is far past it). −25', false); }
+  draw();
+};
+$('#deg').onclick = () => {
+  if (!running || lv0 === 'easy' || done.has('deg')) return; if (!last) return say('Run a soak test first.', false);
+  const ok = last.dur >= 120 && last.u <= brk * .8 && last.pts[10] > last.pts[0] * 1.25;
+  if (ok) { done.add('deg'); score += 100; say('Confirmed: latency climbs over time even at a safe load.', true); } else { score -= 25; say('Your last run does not show it. Use a long soak at a load below the breaking point. −25', false); }
+  draw();
+};
+$('#diag').onclick = () => {
+  if (!running) return; const v = $('#dg').value; if (!v) return;
+  if (v === 'pool' && !done.has('dpool')) { done.add('dpool'); score += 50; say('Correct: CPU is idle but the DB pool is fully used, so requests queue.', true); }
+  else if (v === 'leak' && lv0 !== 'easy' && done.has('deg') && !done.has('dleak')) { done.add('dleak'); score += 50; say('Correct: heap grows steadily with run time and latency follows.', true); }
+  else { score -= 25; say('The metrics do not support that diagnosis (or the matching evidence is missing). −25', false); }
+  draw(); if (missions().every(m => done.has(m))) finish();
+};
+$('#fin').onclick = () => { if (running) finish(); };
+QA.onStart(lv => {
+  lv0 = lv; cfg = CFG[lv]; done = new Set(); score = 0; runs = cfg.runs; last = null; running = true;
+  brk = 0; for (let u = 10; u <= 1000; u++) if (lat(u, 0, cfg) <= 500) brk = u;
+  $('#ch').innerHTML = ''; $('#mt').textContent = 'Run a test to see metrics.'; $('#fb').className = 'fb'; $('#fb').textContent = ''; draw();
+});
+</script></body></html>
