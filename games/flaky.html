@@ -16,6 +16,7 @@ const LV = {
 };
 const stage = QA.$('#stage'), $ = QA.$;
 stage.innerHTML = `<div class="panel"><h2>Suite results</h2><div style="overflow-x:auto"><table class="matrix" id="mx"></table></div>
+  <p class="hint">Reading guide: a test that starts failing and <b>stays</b> failing is <b>broken</b>; one that fails <b>at random</b> is <b>flaky</b>; 🔥 means the CI infrastructure failed, not the test.</p>
   <div class="res" id="dt" style="margin-top:12px">Click a result cell to read its error.</div>
   <div class="actions"><button class="btn" id="run">Run suite ▶</button><button class="btn" id="sub">Submit classification</button></div></div>`;
 let L, k, score = 0, running = false, lv0;

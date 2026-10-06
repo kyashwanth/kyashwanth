@@ -67,7 +67,7 @@ function build() {
       const r = T.run(vals, lv0); p.querySelector('.out').textContent = r.text;
       if (r.hit && !state[k].hit) {
         state[k].hit = true; score += 100; p.querySelector('.out').insertAdjacentHTML('beforeend', '\n\n✅ Vulnerability exploited! +100');
-        p.querySelector('.fixbox').innerHTML = `<label class="l">${T.fix.q}</label><div class="opts">${T.fix.opts.map((o, i) => `<button class="opt" data-i="${i}">${o}</button>`).join('')}</div><div class="fb"></div>`;
+        p.querySelector('.fixbox').innerHTML = `<label class="l">${T.fix.q}</label><div class="opts">${T.fix.opts.map((o, i) => [o, i]).sort(() => Math.random() - .5).map(([o, i]) => `<button class="opt" data-i="${i}">${o}</button>`).join('')}</div><div class="fb"></div>`;
         p.querySelectorAll('.fixbox .opt').forEach(b => b.onclick = () => {
           if (state[k].fixed) return; const ok = +b.dataset.i === T.fix.ok; state[k].fixed = ok ? 'ok' : 'bad'; if (ok) score += 50;
           b.classList.add(ok ? 'ok' : 'bad'); p.querySelector('.fb').className = 'fb ' + (ok ? 'good' : 'miss'); p.querySelector('.fb').innerHTML = (ok ? '✓ ' : '✗ The best fix: ' + T.fix.opts[T.fix.ok] + '. ') + T.fix.why; draw();

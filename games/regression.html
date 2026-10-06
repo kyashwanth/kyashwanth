@@ -16,12 +16,12 @@ const SC = {
     { change:'search/index.js', culprit:'Search', budget:12, tests:[t('Login',3,['Auth']),t('Keyword search',2,['Search']),t('Filter by price',3,['Search']),t('Pay by card',5,['Cart','Payments']),t('Edit profile',2,['Profile','Auth']),t('Order history',3,['Orders'])] }
   ],
   medium:[
-    { change:'cart/discount.js', culprit:'Cart', budget:14, tests:[t('Sign up',3,['Auth','Profile']),t('Apply promo code',3,['Cart']),t('Checkout with card',5,['Cart','Payments','Orders']),t('Reorder a past order',4,['Orders','Cart']),t('Track delivery',3,['Orders','Notifications']),t('Update address',2,['Profile']),t('Search and sort',3,['Search'])] },
+    { change:'cart/discount.js', culprit:'Cart', budget:14, tests:[t('Sign up',3,['Auth','Profile']),t('Apply promo code',3,['Cart','Auth']),t('Checkout with card',5,['Cart','Payments','Orders']),t('Reorder a past order',4,['Orders','Cart']),t('Track delivery',3,['Orders','Notifications']),t('Update address',2,['Profile']),t('Search and sort',3,['Search'])] },
     { change:'notifications/sms.js', culprit:'Notifications', budget:13, tests:[t('Login',3,['Auth']),t('Password reset by SMS',4,['Auth','Notifications']),t('Order confirmation email',4,['Orders','Notifications']),t('Checkout with card',5,['Cart','Payments','Orders']),t('Search',2,['Search']),t('Edit profile',2,['Profile'])] }
   ],
   hard:[
     { change:'profile/avatar.js, utils/money.js', culprit:'SharedUtils', budget:14, tests:[t('Avatar upload',3,['Profile']),t('Cart total',2,['Cart','SharedUtils']),t('Pay by card',5,['Payments','Cart','SharedUtils']),t('Invoice PDF',4,['Orders','SharedUtils']),t('Login',3,['Auth']),t('Search',2,['Search']),t('Edit profile',2,['Profile','Auth']),t('Track delivery',3,['Orders','Notifications'])] },
-    { change:'auth/session.js, utils/date.js', culprit:'Auth', budget:10, tests:[t('Login',3,['Auth']),t('Edit profile',2,['Profile','Auth']),t('View orders (signed in)',4,['Orders','Auth']),t('Search (guest)',2,['Search']),t('Add to cart (guest)',2,['Cart']),t('Pay as guest',5,['Cart','Payments'])] }
+    { change:'auth/session.js, utils/date.js', culprit:'Auth', budget:10, tests:[t('Login',3,['Auth','Notifications']),t('Edit profile',2,['Profile','Auth']),t('View orders (signed in)',4,['Orders','Auth']),t('Search (guest)',2,['Search']),t('Add to cart (guest)',2,['Cart']),t('Pay as guest',5,['Cart','Payments'])] }
   ]
 };
 const stage = QA.$('#stage'), $ = QA.$;

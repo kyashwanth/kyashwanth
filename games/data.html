@@ -3,7 +3,7 @@
 <title>Data Detective — QA Games</title><link rel="stylesheet" href="shared.css"></head>
 <body><script src="shared.js"></script>
 <script>
-const COLS = [['order_id','PRIMARY KEY, unique'],['customer','FOREIGN KEY to customers(id): C-17, C-22, C-31'],['email','NOT NULL'],['amount','DECIMAL(10,2), must be > 0'],['status','ENUM: PAID, SHIPPED, DELIVERED'],['created_at','DATE, cannot be after today (2026-10-03)'],['shipped_at','DATE, NULL or on/after created_at']];
+const COLS = [['order_id','PRIMARY KEY, unique'],['customer','FOREIGN KEY to customers(id): C-17, C-22, C-31'],['email','NOT NULL'],['amount','NUMERIC currency value: must be > 0 with at most 2 decimal places'],['status','ENUM: PAID, SHIPPED, DELIVERED'],['created_at','DATE, cannot be after today (2026-10-03)'],['shipped_at','DATE, NULL or on/after created_at']];
 const BASE = [
   ['1001','C-17','ann@mail.com','59.00','SHIPPED','2026-03-02','2026-03-04'],
   ['1002','C-22','ben@mail.com','120.50','DELIVERED','2026-03-03','2026-03-05'],
