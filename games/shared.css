@@ -106,3 +106,8 @@ svg.chart { width:100%; height:200px; background:#0b0d16; border:1px solid var(-
 /* interview embed mode: no chrome, no replay buttons */
 .embed .top a, .embed #again, .embed #end .btn.ghost { display:none; }
 .embed .wrap { padding-top:8px; }
+
+.tg { display:flex; align-items:center; justify-content:center; gap:8px; margin:0 0 16px; font-size:14px; cursor:pointer; }
+.tg span { color:var(--muted); font-size:12px; }
+.tg input { accent-color:var(--a2); width:16px; height:16px; }
+.embed .tg { display:none; }

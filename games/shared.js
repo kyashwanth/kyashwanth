@@ -7,6 +7,9 @@ const QA = (() => {
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
   };
   const params = new URLSearchParams(location.search), embed = params.get('embed') === '1';
+  // Timers are optional: remembered per browser, and forced by the interview runner via ?timers=0|1
+  const timersOn = () => embed ? params.get('timers') !== '0' : store.get('qa:timers') !== false;
+  const clock = left => left === null ? '⏱ untimed' : `⏱ ${left}s`;
   let cfg, level = 'medium';
 
   function frame(c) {
@@ -22,7 +25,7 @@ const QA = (() => {
     </div>
     <div class="overlay" id="start"><div class="modal"><div class="big">${c.emoji}</div><span class="tag">${c.aspect}</span><h2>${c.title}</h2><p>${c.intro}</p>
       <div class="levels">${LV.map(l => `<button class="lv" data-l="${l}">${l[0].toUpperCase() + l.slice(1)}</button>`).join('')}</div>
-      <p id="lvinfo"></p><button class="btn" id="go">Start</button></div></div>
+      <p id="lvinfo"></p>${c.timed ? '<label class="tg"><input type="checkbox" id="tmr"> ⏱ Timer <span>(off: no countdown, no time bonus)</span></label>' : ''}<button class="btn" id="go">Start</button></div></div>
     <div class="overlay hide" id="end"><div class="modal"><div class="big" id="e-emoji"></div><h2 id="e-title"></h2><p id="e-text"></p><div class="missed" id="e-extra"></div><button class="btn" id="again">Play again</button><a class="btn ghost" href="index.html">All games</a></div></div>`;
     const paint = () => {
       document.querySelectorAll('.lv').forEach(b => b.classList.toggle('on', b.dataset.l === level));
@@ -30,6 +33,7 @@ const QA = (() => {
     };
     document.querySelectorAll('.lv').forEach(b => b.onclick = () => { level = b.dataset.l; if (!embed) store.set('qa:level', level); paint(); });
     paint();
+    if (c.timed) { const t = $('#tmr'); t.checked = timersOn(); t.onchange = () => { if (!embed) store.set('qa:timers', t.checked); }; }
   }
   const hud = items => { $('#hud').innerHTML = items.map(t => `<span class="chip">${t}</span>`).join(''); };
   const onStart = fn => {
@@ -38,6 +42,8 @@ const QA = (() => {
     if (embed) setTimeout(() => $('#go').click(), 0);   // interview mode: skip the start screen
   };
   const timer = (sec, draw, done) => {
+    const t = $('#tmr'); if (!embed && t) store.set('qa:timers', t.checked);   // honour the toggle at the moment of starting
+    if (!timersOn()) { draw(null); return { stop: () => {}, left: () => null }; }
     let left = sec; draw(left);
     const id = setInterval(() => { left--; draw(left); if (left <= 0) { clearInterval(id); done(); } }, 1000);
     return { stop: () => clearInterval(id), left: () => left };
@@ -67,15 +73,16 @@ const QA = (() => {
   const contrast = el => { const a = lum(rgb(getComputedStyle(el).color)), b = lum(effBg(el)); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); };
 
   function hunt(c) {
+    c.timed = true;
     frame(c);
     document.head.appendChild(Object.assign(document.createElement('style'), { textContent: c.css || '' }));
     $('#stage').innerHTML = `<div class="layout"><div id="app" class="app"></div>
       <aside class="side"><div class="panel"><h2>Inspector</h2><div id="insp" class="insp">Click any element on the page to inspect it, then report it if you think it is a defect.</div>
-        <div class="actions"><button class="btn small" id="rep" disabled>🐞 Report bug</button><button class="btn small ghost" id="hint">💡 Hint</button></div></div>
+        <div class="actions"><button class="btn small" id="rep" disabled>🐞 Report bug</button><button class="btn small ghost" id="hint">💡 Hint</button><button class="btn small ghost" id="fin">🏁 Finish</button></div></div>
       <div class="panel" style="margin-top:14px"><h2>Bug report</h2><ul id="log"></ul></div></aside></div>`;
     const app = $('#app'), log = $('#log'), rep = $('#rep'), hint = $('#hint');
     let active, bugs, found, score, hints, sel, tm, running = false;
-    const draw = (left = tm ? tm.left() : 0) => hud([`Bugs: ${found ? found.size : 0} / ${bugs ? bugs.length : 0}`, `Score: ${score || 0}`, `⏱ ${left}s`]);
+    const draw = (left = tm ? tm.left() : 0) => hud([`Bugs: ${found ? found.size : 0} / ${bugs ? bugs.length : 0}`, `Score: ${score || 0}`, clock(left)]);
     const addLog = (t, miss) => { log.querySelector('.empty')?.remove(); const li = document.createElement('li'); if (miss) li.className = 'miss'; li.textContent = (miss ? '✗ ' : '✓ ') + t; log.prepend(li); };
     const bugFor = el => { for (let n = el; n && n !== app; n = n.parentElement) { const b = bugs.find(b => b.els.includes(n.id)); if (b) return b; } };
     const clearSel = () => { sel?.classList.remove('sel-el'); sel = null; rep.disabled = true; };
@@ -89,7 +96,7 @@ const QA = (() => {
     }
     function finish() {
       running = false; tm?.stop(); clearSel();
-      const n = found.size, total = bugs.length, bonus = n === total ? tm.left() : 0, [e, t] = rate(n / total, c.ratings);
+      const n = found.size, total = bugs.length, bonus = n === total ? (tm.left() || 0) : 0, [e, t] = rate(n / total, c.ratings);
       score += bonus;
       const missed = bugs.filter(b => !found.has(b.id));
       end(e, t, `You found ${n} of ${total} bugs. Final score: ${score}${bonus ? ` (includes +${bonus} time bonus)` : ''}.`,
@@ -112,6 +119,7 @@ const QA = (() => {
       clearSel(); draw();
       if (found.size === bugs.length) finish();
     };
+    $('#fin').onclick = () => { if (running) finish(); };
     hint.onclick = () => {
       if (!running || hints <= 0) return;
       const b = bugs.find(b => !found.has(b.id)); if (!b) return;
@@ -128,5 +136,5 @@ const QA = (() => {
       tm?.stop(); tm = timer(L.seconds, draw, finish);
     });
   }
-  return { $, LV, store, frame, hud, onStart, timer, end, rate, hunt };
+  return { $, LV, store, frame, hud, onStart, timer, clock, end, rate, hunt };
 })();

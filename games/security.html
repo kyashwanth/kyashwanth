@@ -4,7 +4,7 @@
 <body><script src="shared.js"></script>
 <script>
 QA.frame({
-  id:'security', max:{easy:300,medium:450,hard:600}, emoji:'🛡️', title:'Security Lab', aspect:'Security testing',
+  id:'security', timed:true, max:{easy:300,medium:450,hard:600}, emoji:'🛡️', title:'Security Lab', aspect:'Security testing',
   intro:'Penetration-test a deliberately vulnerable <b>demo app</b> (simulated entirely in this page). Craft inputs that break each form, then pick the right fix. Skills here are for defending your own apps.',
   levelInfo:{ easy:'Login + search, no filters. 240s.', medium:'Adds a file viewer; some naive filters. 240s.', hard:'Adds a ping tool; filters need cleverer inputs. 240s.' }
 });
@@ -47,7 +47,7 @@ const TARGETS = {
 };
 const SETS = { easy:['login','search'], medium:['login','search','files'], hard:['login','search','files','ping'] };
 const $ = QA.$; let ks, state, score, tm, lv0, running = false;
-const draw = (left = tm ? tm.left() : 0) => QA.hud([`Exploited: ${ks ? ks.filter(k => state[k].hit).length : 0} / ${ks ? ks.length : 0}`, `Score: ${score || 0}`, `⏱ ${left}s`]);
+const draw = (left = tm ? tm.left() : 0) => QA.hud([`Exploited: ${ks ? ks.filter(k => state[k].hit).length : 0} / ${ks ? ks.length : 0}`, `Score: ${score || 0}`, QA.clock(left)]);
 function finish() {
   running = false; tm.stop();
   const total = ks.length * 150, [e, t] = QA.rate(Math.max(0, score) / total);
@@ -57,7 +57,8 @@ function build() {
   $('#stage').innerHTML = `<div class="two">${ks.map(k => { const T = TARGETS[k]; return `<div class="panel" data-k="${k}"><h2>${T.name}</h2>
     ${T.fields.map(f => `<label class="l">${f[1]}</label><input class="in" data-f="${f[0]}">`).join('')}
     <div class="actions"><button class="btn small send">Send</button><button class="btn small ghost hint">💡 Hint (−25)</button></div>
-    <div class="res out" style="margin-top:10px">Waiting for input…</div><div class="fixbox"></div></div>`; }).join('')}</div>`;
+    <div class="res out" style="margin-top:10px">Waiting for input…</div><div class="fixbox"></div></div>`; }).join('')}</div><div class="actions"><button class="btn small ghost" id="fin">🏁 Finish</button></div>`;
+  $('#fin').onclick = () => { if (running) finish(); };
   document.querySelectorAll('.panel[data-k]').forEach(p => {
     const k = p.dataset.k, T = TARGETS[k];
     p.querySelector('.send').onclick = () => {

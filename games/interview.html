@@ -36,14 +36,16 @@
   const $ = (s, r = document) => r.querySelector(s), main = $('#main');
   const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ignore */ } } };
   const NAMES = { 'bughunt.html':'Bug Hunt', 'boundary.html':'Boundary Lab', 'api.html':'API Lab', 'flaky.html':'Flaky Test Hunt', 'security.html':'Security Lab', 'regression.html':'Regression Radar', 'triage.html':'Bug Triage Board', 'perf.html':'Perf Lab' };
-  let rid, R, si, results, t0, clock;
+  let rid, R, si, results, t0, clock, timed = store.get('qa:timers') !== false;
 
   function home() {
     clearInterval(clock); $('#hud').innerHTML = '';
-    main.innerHTML = `<h1>🎯 Interview Mode</h1><p class="lead">Three mock technical interviews. Each chains three hands-on challenges, then gives you a scorecard with a hiring verdict. One go per stage, no replays.</p>
+    main.innerHTML = `<h1>🎯 Interview Mode</h1><label class="tg" style="justify-content:flex-start"><input type="checkbox" id="itm"> ⏱ Timed stages <span>(off: stages have no countdown)</span></label>
+      <p class="lead">Three mock technical interviews. Each chains three hands-on challenges, then gives you a scorecard with a hiring verdict. One go per stage, no replays.</p>
       <div class="grid">${Object.entries(ROUNDS).map(([id, r]) => { const b = store.get('qa:interview:' + id); return `<div class="round"><span class="tag">${r.mins}</span><h2>${r.title}</h2><p>${r.blurb}</p>
         <ol>${r.stages.map(s => `<li>${NAMES[s.page]} <span class="meta">(${s.skill}, ${s.level})</span></li>`).join('')}</ol>
         <div class="meta">${b !== null ? 'Best score: <b>' + b + '%</b>' : 'Not attempted yet'}</div><button class="btn" data-r="${id}">Start this round</button></div>`; }).join('')}</div>`;
+    const tm = $('#itm'); tm.checked = timed; tm.onchange = () => { timed = tm.checked; store.set('qa:timers', timed); };
     main.querySelectorAll('[data-r]').forEach(b => b.onclick = () => begin(b.dataset.r));
   }
   function begin(id) {
@@ -54,7 +56,7 @@
   function stage() {
     const S = R.stages[si];
     main.innerHTML = `<h2 style="margin:0 0 4px">${R.title}</h2><div class="prog">${R.stages.map((s, i) => `<span class="${i < si ? 'done' : i === si ? 'on' : ''}">${i + 1}. ${s.skill}</span>`).join('')}</div>
-      <div id="frameBox"><iframe id="fr" title="${NAMES[S.page]}" src="${S.page}?embed=1&level=${S.level}"></iframe></div>
+      <div id="frameBox"><iframe id="fr" title="${NAMES[S.page]}" src="${S.page}?embed=1&level=${S.level}&timers=${timed ? 1 : 0}"></iframe></div>
       <div class="actions noprint"><button class="btn" id="nx" hidden>${si === R.stages.length - 1 ? 'See my scorecard →' : 'Next stage →'}</button></div>`;
     $('#nx').onclick = () => { si++; si < R.stages.length ? stage() : card(); };
   }

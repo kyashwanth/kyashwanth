@@ -4,7 +4,7 @@
 <body><script src="shared.js"></script>
 <script>
 QA.frame({
-  id:'api', max:{easy:300,medium:500,hard:700}, emoji:'🔌', title:'API Lab', aspect:'API testing',
+  id:'api', timed:true, max:{easy:300,medium:500,hard:700}, emoji:'🔌', title:'API Lab', aspect:'API testing',
   intro:'A bookstore API is running in your browser. Send real requests, study the responses against the docs, and report the defects you find.',
   levelInfo:{ easy:'3 bugs (status codes, validation). 180s, 3 hints.', medium:'5 bugs, adds authentication and authorization. 150s, 1 hint.', hard:'7 bugs, adds error leaks and data types. 120s, no hints.' }
 });
@@ -26,7 +26,7 @@ stage.innerHTML = `<div class="two">
     <div class="row2"><select class="in" id="m" style="width:110px"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select><input class="in" id="p" value="/books" style="flex:1"></div>
     <label class="l">Authorization</label><select class="in" id="a"><option value="">(none)</option><option>user1-token</option><option>user2-token</option><option>admin-token</option></select>
     <label class="l">JSON body</label><textarea class="in" id="b" placeholder='{"title":"Emma","price":8}'></textarea>
-    <div class="actions"><button class="btn" id="send">Send ▶</button><button class="btn small ghost" id="hint">💡 Hint</button></div>
+    <div class="actions"><button class="btn" id="send">Send ▶</button><button class="btn small ghost" id="hint">💡 Hint</button><button class="btn small ghost" id="fin">🏁 Finish</button></div>
     <p class="mini">Examples: <a href="#" data-ex="GET|/books||">list</a> · <a href="#" data-ex="GET|/books/1||">book 1</a> · <a href="#" data-ex='POST|/books||{"title":"Ulysses","price":15}'>create</a> · <a href="#" data-ex="DELETE|/books/2|admin-token|">delete</a></p></div>
   <div class="panel"><h2>API docs</h2><div class="mini" style="line-height:1.7"><code>GET /books?limit=n</code> list books<br><code>GET /books/{id}</code> one book (price is a number)<br><code>POST /books</code> needs <b>title</b> (text) and <b>price</b> (number ≥ 0)<br><code>DELETE /books/{id}</code> admin token only<br><code>GET /users/{id}/orders</code> only that user, or admin<br>Use standard REST status codes. Tokens: user1-token, user2-token, admin-token.</div></div></div>
   <div class="stack"><div class="panel"><h2>Response</h2><div id="out" class="res">Send a request to see the response.</div>
@@ -79,7 +79,7 @@ const handle = q => {
   }
   return R(404, { error:'No such route' });
 };
-const draw = (left = tm ? tm.left() : 0) => QA.hud([`Bugs: ${found ? found.size : 0} / ${active ? active.size : 0}`, `Score: ${score || 0}`, `⏱ ${left}s`]);
+const draw = (left = tm ? tm.left() : 0) => QA.hud([`Bugs: ${found ? found.size : 0} / ${active ? active.size : 0}`, `Score: ${score || 0}`, QA.clock(left)]);
 const addLog = (t, miss) => { $('#log .empty')?.remove(); const li = document.createElement('li'); if (miss) li.className = 'miss'; li.textContent = (miss ? '✗ ' : '✓ ') + t; $('#log').prepend(li); };
 function finish() {
   running = false; tm.stop();
@@ -104,6 +104,7 @@ $('#rep').onclick = () => {
   $('#rep').disabled = true; last = null; draw();
   if (found.size === active.size) finish();
 };
+$('#fin').onclick = () => { if (running) finish(); };
 $('#hint').onclick = () => {
   if (!running || hints <= 0) return; const b = BUGS.find(b => active.has(b.id) && !found.has(b.id)); if (!b) return;
   hints--; score -= 50; addLog('Hint: ' + b.hint, true); $('#hint').textContent = `💡 Hint (${hints})`; $('#hint').disabled = hints <= 0; draw();
