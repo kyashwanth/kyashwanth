@@ -32,6 +32,17 @@ A single-page portfolio, plus a small arcade of hands-on testing games. Nothing 
 
 Every game has **Easy / Medium / Hard**, and best scores are kept in your browser's `localStorage`.
 
+### 💬 Prompt library
+
+`prompts.html` is a searchable, filterable library of 82 prompts written for AI coding assistants and LLM-enabled IDEs. They tell the assistant what to read in your repo, what to build, which commands to run and how to prove the result.
+
+- **Filters:** category, mode (**Agent** reads, edits and runs things; **Analysis** only produces findings or documents) and **tool**, limited to the tools used in this profile: Playwright, Selenium, TestNG, Cucumber, REST Assured, Postman, Bruno, JMeter, SoapUI, axe-core, Chrome DevTools, SonarQube, Snyk, Trivy, Docker, GitLab CI, Git, Jira and Zephyr.
+- **Accessibility:** 14 prompts covering keyboard testing, colour contrast, forms, ARIA widgets, screen reader scripts, axe-core automation and triage, reflow and zoom, DevTools-based manual testing, acceptance criteria and a conformance summary.
+- **Fill in values:** type your own paths and commands into a prompt and copy the finished text.
+- **Guardrails:** a safety block (stop and warn on secrets or personal data, stay on local or test environments, ask before risky actions, never weaken tests) is appended to every copied prompt, and can be turned off.
+- **Secret scanner:** anything typed into the page is checked in the browser for API keys, tokens, private keys, passwords, card numbers and similar. If something looks real, the page asks the user to revoke or rotate it, blocks copying until it is replaced with an environment variable or placeholder, and never stores it, sends it anywhere or puts it in the URL.
+- **Shareable links:** `prompts.html?q=flaky&mode=agent&tool=Playwright`.
+
 ### 🎯 Interview Mode
 
 Three mock technical rounds, each chaining three games into one timed assessment with a scorecard and a hiring verdict:
@@ -45,6 +56,7 @@ Three mock technical rounds, each chaining three games into one timed assessment
 ```text
 .
 ├── index.html            the portfolio
+├── prompts.html          searchable library of prompts for testing
 ├── 404.html              a 404 that admits it is a bug
 ├── game/                 old Bug Hunt URL (redirects)
 └── games/

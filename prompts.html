@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Testing Prompts — Yashwanth Reddy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%9E%3C/text%3E%3C/svg%3E">
+<meta name="description" content="A searchable library of prompts for AI coding assistants and LLM-enabled IDEs: test design, API testing, automation code, bug reports, performance, security, accessibility and CI.">
+<meta name="theme-color" content="#0f1318">
+<style>
+  :root { --bg:#0f1318; --panel:#161b22; --fg:#e6e9ee; --muted:#9aa4b2; --line:#262d37; --accent:#4cc2ff; --ok:#3ecf8e; --hl:rgba(76,194,255,.18); }
+  @media (prefers-color-scheme: light) { :root { --bg:#f6f7f9; --panel:#ffffff; --fg:#14181f; --muted:#59636f; --line:#dfe3e8; --accent:#0969da; --ok:#1a7f4b; --hl:rgba(9,105,218,.14); } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+  .wrap { max-width:1000px; margin:0 auto; padding:0 24px; }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+  nav { position:sticky; top:0; z-index:10; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  nav .wrap { display:flex; justify-content:space-between; align-items:center; height:56px; }
+  .logo { font-weight:700; color:var(--fg); } nav ul { display:flex; gap:22px; list-style:none; margin:0; padding:0; font-size:14px; }
+  nav ul a { color:var(--muted); } nav ul a:hover, nav ul a.on { color:var(--fg); text-decoration:none; }
+  header { padding:48px 0 20px; }
+  .eyebrow { font:600 13px ui-monospace,Menlo,Consolas,monospace; color:var(--accent); letter-spacing:.04em; }
+  h1 { font-size:clamp(30px,5vw,44px); letter-spacing:-.03em; line-height:1.1; margin:8px 0 10px; }
+  .lead { color:var(--muted); max-width:640px; margin:0; }
+  .tools { position:sticky; top:56px; z-index:5; background:var(--bg); padding:14px 0 12px; border-bottom:1px solid var(--line); }
+  .search { position:relative; }
+  .search input { width:100%; background:var(--panel); color:var(--fg); border:1px solid var(--line); border-radius:10px; padding:12px 90px 12px 14px; font:16px inherit; font-family:inherit; }
+  .search input:focus { border-color:var(--accent); outline:none; }
+  .search kbd { position:absolute; right:12px; top:50%; transform:translateY(-50%); border:1px solid var(--line); border-radius:6px; padding:0 8px; font:12px ui-monospace,monospace; color:var(--muted); }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .chip { background:var(--panel); color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:4px 14px; font:13px inherit; font-family:inherit; cursor:pointer; }
+  .chip:hover { border-color:var(--accent); color:var(--fg); } .chip.on { background:var(--accent); border-color:var(--accent); color:#06121c; font-weight:600; }
+  .count { color:var(--muted); font-size:13px; margin:16px 0 12px; }
+  .list { display:grid; gap:14px; padding-bottom:56px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px 20px; }
+  .card h2 { margin:0; font-size:17px; letter-spacing:-.005em; }
+  .meta { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 10px; align-items:center; }
+  .cat { font:600 11px ui-monospace,Menlo,monospace; color:var(--accent); text-transform:uppercase; letter-spacing:.08em; margin-right:4px; }
+  .tag { font-size:12px; color:var(--muted); border:1px solid var(--line); border-radius:6px; padding:0 7px; }
+  pre { margin:0; white-space:pre-wrap; word-wrap:break-word; font:13.5px/1.6 ui-monospace,Menlo,Consolas,monospace; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:14px; max-height:150px; overflow:hidden; position:relative; }
+  pre.open { max-height:none; }
+  pre:not(.open)::after { content:""; position:absolute; left:0; right:0; bottom:0; height:46px; background:linear-gradient(transparent, var(--bg)); }
+  .ph { color:var(--accent); } mark { background:var(--hl); color:inherit; border-radius:3px; }
+  .actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  button.b { background:var(--panel); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:7px 14px; font:600 13px inherit; font-family:inherit; cursor:pointer; }
+  button.b:hover { border-color:var(--accent); } button.b.copy { background:var(--accent); border-color:var(--accent); color:#06121c; } button.b.done { background:var(--ok); border-color:var(--ok); color:#fff; }
+  .empty { text-align:center; color:var(--muted); padding:48px 0; border:1px dashed var(--line); border-radius:12px; }
+  .note { color:var(--muted); font-size:13px; padding:0 0 48px; }
+  footer { padding:28px 0 44px; color:var(--muted); font-size:13px; border-top:1px solid var(--line); }
+  .how { margin:14px 0 0; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 16px; max-width:760px; }
+  .how summary { cursor:pointer; color:var(--accent); font-size:14px; font-weight:600; } .how ul { margin:10px 0 4px; padding-left:20px; color:var(--muted); font-size:14px; } .how li { margin-bottom:6px; } .how b { color:var(--fg); }
+  code { font:13px ui-monospace,Menlo,monospace; background:var(--bg); border:1px solid var(--line); border-radius:5px; padding:0 5px; }
+  .modes { margin-top:8px; } .badge { font:600 11px ui-monospace,Menlo,monospace; border-radius:999px; padding:1px 9px; margin-right:4px; }
+  .badge.agent { background:rgba(76,194,255,.16); color:var(--accent); } .badge.analysis { background:rgba(154,164,178,.18); color:var(--muted); }
+  .row3 { display:flex; flex-wrap:wrap; gap:16px; align-items:center; margin-top:10px; font-size:14px; color:var(--muted); }
+  .sel select { margin-left:6px; background:var(--panel); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:5px 8px; font:14px inherit; font-family:inherit; max-width:230px; }
+  .tg { display:flex; align-items:center; gap:7px; cursor:pointer; } .tg input { accent-color:var(--accent); width:16px; height:16px; }
+  .tool { font:600 11px ui-monospace,Menlo,monospace; border-radius:6px; padding:0 8px; background:rgba(62,207,142,.15); color:var(--ok); }
+  .alert { margin-top:10px; border:1px solid #d1495b; background:rgba(209,73,91,.12); border-radius:8px; padding:10px 14px; font-size:14px; } .alert.soft { border-color:#c9a227; background:rgba(201,162,39,.12); }
+  #qalert { margin-top:10px; } #qalert[hidden] { display:none; }
+  .fill { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:12px; } .fill[hidden] { display:none; }
+  .fill label { display:flex; flex-direction:column; gap:4px; font:600 11px ui-monospace,Menlo,monospace; color:var(--accent); text-transform:uppercase; letter-spacing:.05em; }
+  .fill input { background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:7px 10px; font:13px ui-monospace,Menlo,monospace; text-transform:none; letter-spacing:0; }
+  .fill input:focus { border-color:var(--accent); outline:none; }
+  .filled { color:var(--ok); font-weight:600; } .gnote { align-self:center; } .gnote[hidden] { display:none; }
+  button.b[disabled] { opacity:.55; cursor:not-allowed; border-color:#d1495b; }
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="logo" href="index.html">Yashwanth Reddy</a>
+  <ul><li><a href="index.html">Home</a></li><li><a href="prompts.html" class="on">Prompts</a></li><li><a href="games/index.html">Playground</a></li><li><a href="index.html#contact">Contact</a></li></ul>
+</div></nav>
+
+<main class="wrap">
+  <header>
+    <div class="eyebrow">PROMPT LIBRARY</div>
+    <h1>Prompts for testing</h1>
+    <p class="lead">Prompts written for AI coding assistants and LLM-enabled IDEs in agent or chat mode. They tell the assistant what to read in your repo, what to build, which commands to run and how to prove the result. Replace the <span class="ph">[PLACEHOLDERS]</span> with your paths and commands.</p>
+    <details class="how"><summary>How to use these in your IDE</summary>
+      <ul>
+        <li><b>Point it at real files.</b> Use your IDE's file or folder mentions (for example <code>@src/orders</code>) or paste the paths into the placeholders.</li>
+        <li><b>Plan first.</b> For anything that edits code, ask for a short plan and approve it before it changes files.</li>
+        <li><b>Make it prove the work.</b> Every agent prompt ends with a command to run. Keep that step; it turns guesses into evidence.</li>
+        <li><b>Review the diff.</b> Treat generated tests like a teammate's pull request: check assertions, not just that they pass.</li>
+        <li><b>Work in small steps and a branch.</b> One prompt, one reviewable change, one commit.</li>
+        <li><b>Protect secrets.</b> Never put credentials, tokens or customer data in a prompt. This page checks what you type and tells you to revoke or rotate anything that looks like a secret. Values stay in your browser and are never stored or sent anywhere.</li>
+        <li><b>Save your conventions.</b> Put your test commands and rules in your assistant's project rules file so you do not repeat them (see "Write a testing rules file").</li>
+      </ul></details>
+    <details class="how" id="gbox"><summary>Safety guardrails added to every copied prompt</summary><div id="gtext" style="font-size:14px;color:var(--muted)"></div></details>
+  </header>
+
+  <div class="tools">
+    <div class="search"><input id="q" type="search" placeholder="Search prompts or tools, e.g. Playwright, JMeter, Postman, flaky…" aria-label="Search prompts" autocomplete="off"><kbd>/</kbd></div>
+    <div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
+    <div class="chips" id="modes" role="group" aria-label="Filter by mode"></div>
+    <div class="row3"><label class="sel">Tool <select id="tool" aria-label="Filter by tool"></select></label><label class="tg"><input type="checkbox" id="guard"> Add safety guardrails when copying</label></div>
+    <div id="qalert" hidden></div>
+  </div>
+  <div class="count" id="count" aria-live="polite"></div>
+  <div class="list" id="list"></div>
+  <p class="note"><b>Guardrails:</b> when you copy a prompt, a safety block is added that tells the assistant to stop and warn you if it finds secrets or personal data, to stay on local or test environments, and to ask before risky actions. You can turn it off with the checkbox above. <b>Agent</b> prompts read, edit and run things in your project. <b>Analysis</b> prompts only produce findings or documents and never change your code. Always review what an assistant changes, and never share secrets or customer data.</p>
+</main>
+<footer><div class="wrap">© <span id="yr"></span> Kudumula Yashwanth Reddy</div></footer>
+
+<script>
+  // mode: 'agent' = reads, edits and runs things in the repo; 'analysis' = read-only findings
+  const P = (id, cat, title, tags, prompt, mode = 'agent', tools = []) => ({ id, cat, title, tags, prompt: prompt.trim(), mode, tools });
+  const PROMPTS = [
+    // ================= Test design
+    P('td1','Test design','Design test cases from a requirement or ticket',['test cases','requirements','coverage'],
+`You are a senior QA engineer working in this repository.
+
+1. Read the requirement in [PATH TO SPEC OR USER STORY] and the code it touches in [PATHS TO MODULES].
+2. Design test cases for happy paths, negatives, boundaries, error handling and permissions.
+3. Save them to [OUTPUT PATH, E.G. DOCS/TESTS/FEATURE.MD] as a table: ID, Title, Preconditions, Steps, Expected result, Type, Priority.
+4. List ambiguities and questions for the product owner, and anything the code does that the requirement does not mention.
+
+Do not write automation yet. Do not change any source files.`, 'analysis'),
+    P('td2','Test design','Boundary value tests for a validation rule',['boundary','equivalence','validation','unit test'],
+`Find the validation for [FIELD OR FUNCTION] in [FILE PATH].
+
+1. Work out the intended rule from the code, comments and docs. If they disagree, report that as a finding before anything else.
+2. Apply boundary value analysis and equivalence partitioning: min-1, min, min+1, max-1, max, max+1, typical values, and invalid types (empty, null, text, decimals, huge numbers).
+3. Add a parameterised test using the project's existing test framework and style, with one row per value and the expected result.
+4. Run [TEST COMMAND] and report any value where the code does not behave as the rule says. Do not fix production code.`),
+    P('td3','Test design','Decision table and tests for business rules',['decision table','rules','logic'],
+`Read the business rules implemented in [FILE PATH] and any rule docs in [DOCS PATH].
+
+1. List the conditions and actions.
+2. Build the full decision table and merge equivalent columns. Save it to [OUTPUT PATH].
+3. Report rules that are missing, overlapping or contradictory in the code.
+4. Write one automated test per remaining rule in [TEST DIRECTORY], following existing conventions, and run [TEST COMMAND].`),
+    P('td4','Test design','State transition model and tests',['state machine','workflow','mermaid'],
+`Read the code that manages the lifecycle of [ENTITY, E.G. ORDER] in [PATHS].
+
+1. Draw the state machine as a Mermaid diagram in [OUTPUT PATH]: states, events, guards and transitions.
+2. Flag states that cannot be reached or left, and transitions that look missing.
+3. Write tests for every valid transition and every invalid one (an event that must be rejected in a state), plus one path that visits every state.
+4. Run [TEST COMMAND] and summarise the results.`),
+    P('td5','Test design','Pairwise test set as a data-driven test',['pairwise','combinatorial','compatibility'],
+`I need to test combinations of these parameters:
+
+[PARAMETER 1] = [VALUES]
+[PARAMETER 2] = [VALUES]
+[PARAMETER 3] = [VALUES]
+
+1. Generate a minimal all-pairs set with a small script (or [PAIRWISE TOOL] if the team already uses one). Show pairs covered versus the full combination count.
+2. Remove impossible combinations: [KNOWN INVALID COMBINATIONS].
+3. Save the set as [DATA FILE PATH] and wire it into a data-driven test in [TEST DIRECTORY].
+4. Run [TEST COMMAND]. Add any extra combinations that are risky because of [KNOWN RISKS].`),
+    P('td6','Test design','Exploratory testing charters from recent changes',['exploratory','charter','session'],
+`Create 8 exploratory testing charters for [FEATURE OR AREA].
+
+Use the feature code in [PATHS] and the recent history (git log -20 -- [PATHS]) to see what changed and where bugs were fixed before. Known risks: [LIST].
+
+Format: "Explore [AREA] with [DATA OR RESOURCES] to discover [INFORMATION]". For each give a 60-minute time box, heuristics to use (for example CRUD, tours, SFDIPOT) and what notes to capture. Read-only: do not edit files.`, 'analysis'),
+    P('td7','Test design','Review a requirement for testability',['review','requirements','shift-left'],
+`Review the requirement or design in [PATH] for testability and quality.
+
+List: ambiguous or untestable statements, missing acceptance criteria, missing non-functional requirements (performance, security, accessibility, logging), unstated assumptions and conflicting statements. For each issue propose a rewritten, testable version. Read-only: do not edit the file.`, 'analysis'),
+
+    // ================= API testing
+    P('api1','API testing','API test plan from the OpenAPI spec and the code',['openapi','swagger','test plan'],
+`Read the API spec in [PATH TO OPENAPI FILE] and the route handlers in [PATH].
+
+1. For each endpoint cover: status codes, schema and types, required and optional fields, boundaries, authentication, authorization, idempotency, pagination, filtering, rate limits and error body format.
+2. Write the plan to [OUTPUT PATH] as a table and mark which tests are best automated.
+3. Add a section "Spec versus code" listing every place where the implementation disagrees with the spec.
+
+Do not edit source files.`, 'analysis'),
+    P('api2','API testing','Turn curl commands into Bruno / Postman tests',['bruno','postman','curl'],
+`Convert the requests in [PATH TO CURL FILE OR COLLECTION] into a [BRUNO / POSTMAN] collection saved in [OUTPUT DIRECTORY].
+
+Add assertions for status, response time under [MS] ms, JSON schema and key fields. Extract ids and tokens into variables so requests chain. Use environment variables for the base URL and secrets and commit only a template of the environment file.
+
+Run the collection against [LOCAL OR TEST BASE URL] with [CLI COMMAND, E.G. BRU RUN OR NEWMAN RUN] and report the results. Never run it against production.`),
+    P('api3','API testing','Negative and security tests for one endpoint',['negative','auth','injection','idor'],
+`Write negative and security tests for [METHOD AND PATH].
+
+First read the handler, its schema and the auth middleware in [PATHS]. Then cover: missing, extra, null and wrong-type fields; oversized payloads; malformed JSON; invalid and expired tokens; access to other users' resources (IDOR); mass assignment; injection strings in every string field; unsupported methods and content types; replay and double submit.
+
+Use the existing test framework in [TEST DIRECTORY] and run [TEST COMMAND]. If a test fails because the API misbehaves, keep the test and report it as a suspected defect with request, actual response and expected response. Do not change production code.`),
+    P('api4','API testing','REST Assured tests following project conventions',['rest assured','java','automation'],
+`Add REST Assured (Java, JUnit 5) tests for [METHOD AND PATH].
+
+1. Look at the existing API tests in [TEST DIRECTORY] and match their structure, naming and utilities. Reuse the request specification if one exists, otherwise create one.
+2. Include data-driven cases for valid and invalid input, JSON schema validation and clear assertion messages. No hard-coded secrets: read config from [CONFIG SOURCE].
+3. Run [MAVEN OR GRADLE TEST COMMAND] for the new tests and fix any problem in the tests until they pass.`),
+    P('api5','API testing','Consumer-driven contract tests',['contract','consumer-driven','microservices'],
+`Consumer service [CONSUMER PATH] calls provider service [PROVIDER PATH OR SPEC].
+
+1. Read how the consumer uses the provider's responses and list only the fields it really depends on.
+2. Write consumer-driven contract tests with [CONTRACT TESTING TOOL], using loose matchers where the value does not matter and exact ones where it does.
+3. Add provider states and a provider verification test.
+4. Run both sides with [TEST COMMANDS] and explain how to run verification in CI.`),
+    P('api6','API testing','Find where a running API differs from its spec',['openapi','drift','curl','verification'],
+`Start the service locally with [START COMMAND] (never use production) and read the spec at [PATH TO OPENAPI FILE].
+
+For every endpoint, call it with curl using one valid and one invalid request. Compare the actual status code, headers, schema and error body with the spec.
+
+Write a report to [OUTPUT PATH] with a table: endpoint, request, expected, actual, verdict. Group the mismatches by severity. Stop the service when done and do not edit any code.`),
+
+    // ================= Automation code
+    P('au1','Automation code','Playwright test from a manual test case',['playwright','typescript','e2e'],
+`Convert this manual test case into a Playwright (TypeScript) test.
+
+[PASTE MANUAL STEPS OR GIVE THE PATH TO THE TEST CASE]
+
+1. Inspect the existing page objects and fixtures in [TEST DIRECTORY] and reuse them. Add a page object only if one is missing.
+2. Use role, label or test-id locators (no fragile CSS chains), web-first assertions with auto-waiting and no fixed sleeps. Create test data through the API where possible.
+3. Run npx playwright test [FILE] --repeat-each=3 and fix the test until it passes every time.`),
+    P('au2','Automation code','Explore the live app with a browser tool, then generate tests',['playwright','exploration','browser tool','locators'],
+`Use your browser tool to open [LOCAL OR TEST URL] and explore the flow [FLOW DESCRIPTION]. Use only test accounts and never submit real data.
+
+1. Record, for each step, the best stable locator, the visible behaviour and any validation messages you saw.
+2. Note anything that looks like a defect (console errors, broken layout, failed requests) in [OUTPUT PATH].
+3. Generate Playwright tests for the flow in [TEST DIRECTORY] using what you observed, following the project's existing style, and run them.`),
+    P('au3','Automation code','Selenium + TestNG framework scaffold',['selenium','testng','framework','java'],
+`Scaffold a Selenium WebDriver + TestNG (Java) framework in [DIRECTORY], consistent with the existing build file [PATH TO POM OR GRADLE FILE].
+
+Include: Page Object Model, a driver factory for Chrome and Firefox, explicit waits, per-environment config, data providers, retries only for known infrastructure errors, parallel execution, screenshots on failure and a report.
+
+Add one real sample test for [PAGE OR FLOW], run it with [TEST COMMAND] and show the output. Finish with the main design decisions and their trade-offs.`),
+    P('au4','Automation code','Cucumber features and step definitions',['cucumber','bdd','gherkin'],
+`Write Gherkin features and step definitions for this behaviour.
+
+[PASTE USER STORY AND ACCEPTANCE CRITERIA OR GIVE THE PATH]
+
+Use declarative scenarios (business language, not UI clicks), Scenario Outlines with Examples for data variation, a Background only when it is truly shared, and tags such as @smoke and @regression. Implement the steps in [LANGUAGE] inside [TEST DIRECTORY], reuse existing step definitions where possible, and run [TEST COMMAND].`),
+    P('au5','Automation code','Review test automation code (read-only)',['code review','maintainability','page object'],
+`Review the automation code under [TEST DIRECTORY] like a strict senior SDET. Read-only: do not change files.
+
+Report: fragile locators, fixed sleeps, duplicated logic, hidden dependencies between tests, weak assertions, unclear naming, missing cleanup and anything likely to cause flakiness. For each finding give the file and line, the severity, why it matters and a corrected snippet. Save the report to [OUTPUT PATH] and end with the five highest-value fixes.`, 'analysis'),
+    P('au6','Automation code','Test data factory for a model',['test data','factory','fixtures'],
+`Create a test data factory for [MODEL OR SCHEMA PATH] in [LANGUAGE], matching the style of the existing helpers in [TEST SUPPORT DIRECTORY].
+
+Provide sensible defaults, per-field overrides, builders for valid and invalid variants, unique values where uniqueness is required, and deterministic seeding for reproducible runs. Add a small test that proves each builder output passes (or fails) the model validation as intended, and run [TEST COMMAND].`),
+    P('au7','Accessibility','Add axe-core accessibility checks to existing tests',['axe-core','accessibility','playwright'],
+`Add automated accessibility checks with axe-core to the existing [PLAYWRIGHT OR SELENIUM] tests.
+
+Pages and flows to scan: [LIST].
+
+Run axe per page and after key interactions. Fail the build only for [SERIOUS AND CRITICAL] violations, attach the report as an artifact, and exclude known third-party issues with a written justification. Run [TEST COMMAND], list the violations found, and do not fix the application itself in this change.`),
+
+    // ================= Bug reports
+    P('bg1','Bug reports','Write a clear bug report from raw evidence',['bug report','jira','defect'],
+`Turn the evidence into a professional bug report.
+
+Read: [PATH TO NOTES OR FAILING TEST OUTPUT], [PATH TO LOG FILE] and the recent history of the area (git log -10 -- [PATH]).
+Environment: [BROWSER, OS, BUILD, ENVIRONMENT].
+
+Write [OUTPUT PATH] with: Title (specific, under 80 characters), Summary, Preconditions, Numbered steps to reproduce, Expected result, Actual result, Frequency, Impact, Suggested severity and priority with reasoning, attachments to include, and the likely area of the code. Do not invent facts: list what is missing. Do not change any source files.`, 'analysis'),
+    P('bg2','Bug reports','Root cause from a stack trace or log',['logs','root cause','debugging'],
+`Read the log or stack trace at [LOG PATH] and open the source files it points to.
+
+Explain in plain language what failed, rank the likely root causes by probability, and say which extra information would confirm each one. Mark clearly what is fact from the log and what is hypothesis. Propose a minimal fix as a diff in your reply but do not apply it.`, 'analysis'),
+    P('bg3','Bug reports','Triage a backlog by severity and priority',['triage','severity','priority','sprint'],
+`Triage the bugs in [PATH TO EXPORT OR ISSUE LIST].
+
+Context: release date [DATE], main user groups [GROUPS], capacity [POINTS].
+
+For each bug assign severity and priority with a one-line reason, flag duplicates, mark anything that blocks the release and propose a sprint plan within capacity. Explain the difference between severity and priority where they differ. Write the result to [OUTPUT PATH]. Do not change any source files.`, 'analysis'),
+    P('bg4','Bug reports','Find the commit that introduced a regression',['git','bisect','regression','rca'],
+`A regression exists: [DESCRIBE BUG]. It worked at [GOOD COMMIT OR TAG] and fails at [BAD COMMIT].
+
+Use a temporary git worktree so my working tree is untouched. Use git bisect with this check command: [COMMAND THAT EXITS NON-ZERO WHEN THE BUG IS PRESENT]. Report the first bad commit, its author message and diff summary, and a short blameless 5 Whys: why it was introduced and why our tests did not catch it. Clean up the worktree afterwards.`),
+    P('bg5','Bug reports','Reproduce a bug as a failing automated test',['reproduction','tdd','regression test'],
+`Bug: [DESCRIBE BUG AND EXPECTED BEHAVIOUR]. Relevant code: [PATHS].
+
+1. Write the smallest automated test that reproduces it, in the existing framework and style under [TEST DIRECTORY].
+2. Run [TEST COMMAND] and confirm the test fails for the reason described in the bug, not for an unrelated one.
+3. Stop there. Do not fix the bug. Show the failing output and explain what a fix must satisfy.`),
+
+    // ================= Performance
+    P('pf1','Performance','Performance test strategy from the architecture',['load','stress','soak','strategy'],
+`Read the architecture notes in [DOCS PATH] and the service configuration in [CONFIG PATHS]. Expected load: [USERS AND REQUESTS PER SECOND]. SLAs: [E.G. P95 UNDER 500 MS].
+
+Write a short strategy to [OUTPUT PATH]: workload model, load, stress, spike and soak scenarios, test data, environment needs, metrics to collect (latency percentiles, throughput, error rate, CPU, memory, DB connections, GC), pass and fail criteria and risks. Highlight any component with no obvious capacity limit or timeout configured. Do not change any source files.`, 'analysis'),
+    P('pf3','Performance','Interpret load test results',['analysis','bottleneck','metrics'],
+`Read the load test results in [RESULTS PATH] and the service config in [CONFIG PATH].
+
+Find the load level where the system stops meeting the SLA and the likely bottleneck (queueing, thread or connection pool exhaustion, memory leak, slow queries, GC pauses). Say what each metric suggests, show where averages hide problems, and recommend the next three experiments to confirm the cause. Do not change any source files.`, 'analysis'),
+
+    // ================= Security
+    P('sc1','Security','Security review checklist for a feature (own application)',['owasp','asvs','checklist'],
+`Review [FEATURE PATHS] in this repository, which is my own application, against the OWASP Top 10 and ASVS.
+
+Check authentication, session handling, access control (IDOR and privilege escalation), input validation (SQL, XSS, command injection, path traversal), file upload, rate limiting, error handling, logging and sensitive data exposure. For each item give the file and line evidence, how to test it, and what a pass looks like. Write findings to [OUTPUT PATH]. Read-only: do not edit code.`, 'analysis'),
+    P('sc2','Security','STRIDE threat model from the design',['stride','threat model','design'],
+`Read the design docs and code structure in [PATHS] and build a STRIDE threat model: components, data flows and trust boundaries.
+
+For each component and flow list threats under Spoofing, Tampering, Repudiation, Information disclosure, Denial of service and Elevation of privilege. Rate likelihood and impact, suggest mitigations, and turn the top risks into concrete test ideas. Write it to [OUTPUT PATH]. Do not change any source files.`, 'analysis'),
+    P('sc3','Security','Triage scanner findings and fix the safe ones',['sonarqube','snyk','sast','dependencies'],
+`Read the scan report at [REPORT PATH] (SonarQube, Snyk or Trivy).
+
+1. Group findings by root cause and separate real risks from probable false positives, saying why.
+2. Prioritise by exploitability and exposure in our context: [CONTEXT].
+3. For the top items with a straightforward fix (for example a dependency bump), make the change on a new branch, run [TEST COMMAND] and show the result.
+4. Suggest a quality gate that blocks new issues without blocking on noise.`),
+    P('sc4','Security','Security regression tests for a fixed vulnerability',['regression','xss','sql injection','tests'],
+`The vulnerability [DESCRIBE, E.G. REFLECTED XSS IN SEARCH] was fixed in [COMMIT OR PATH].
+
+Read the fix and write tests that would have failed before it and pass now: the exact exploit input, close variants (different encodings, case changes, nested payloads) and legitimate inputs that must still work. Put them under [TEST DIRECTORY] and run [TEST COMMAND]. Use only local or test data and keep payloads harmless (for example an alert call or a marker string).`),
+
+    // ================= Accessibility
+    P('ac1','Accessibility','WCAG 2.2 AA checklist for a component or page',['wcag','a11y','checklist'],
+`Read the markup and styles for [COMPONENT OR PAGE PATHS] and produce a WCAG 2.2 AA test checklist.
+
+Cover keyboard operation and focus order, visible focus, labels and names, headings and landmarks, colour contrast, text resize and reflow, target size, error identification and messages, motion and screen reader announcements. For each check say what to test manually, what axe-core can automate, and any issue you can already see in the code. Write it to [OUTPUT PATH]. Read-only.`, 'analysis'),
+    P('ac2','Accessibility','Audit and fix accessibility defects in components',['html','aria','lint','audit'],
+`Audit the components under [COMPONENT DIRECTORY] for accessibility defects, using [LINT COMMAND IF THE PROJECT HAS ONE] and axe checks in the existing tests.
+
+List each defect with the WCAG success criterion, why it affects users and its severity. Then fix only the safe ones (labels, alt text, roles, focus styles, native elements instead of ARIA) in a small, reviewable change, and re-run the linter and tests. Leave anything that needs a design decision as a list of questions.`),
+
+    // ================= Test data
+    P('dt1','Test data','Generate realistic synthetic test data',['test data','synthetic','seed'],
+`Generate [N] rows of synthetic test data for [SCHEMA OR MODEL PATH] as [CSV OR JSON OR SQL] in [OUTPUT PATH].
+
+Follow the constraints in the schema and migrations: [KNOWN RULES]. Mix typical values with edge cases (very long strings, unicode and emoji, apostrophes, leading and trailing spaces, minimum and maximum numbers, leap-day dates). Use no real personal data. Add a column or comment marking intentionally invalid rows, and write a quick validation script that confirms the valid rows load without errors.`),
+    P('dt2','Test data','SQL data integrity checks',['sql','database','data quality'],
+`Read the schema and migrations in [PATH] and write read-only SQL queries that find: duplicate keys, orphaned foreign keys, NULLs in required columns, values outside allowed ranges or enums, invalid date logic, and totals that do not reconcile between tables.
+
+Save the queries to [OUTPUT PATH] with the rule each one checks and how to read its result. Run them only against [LOCAL OR TEST DATABASE] using SELECT statements. Never run anything that writes, and never touch production.`),
+
+    // ================= Strategy
+    P('st1','Strategy','Risk-based test strategy from the repo and recent changes',['strategy','risk','planning'],
+`Create a risk-based test strategy for [RELEASE OR CHANGE].
+
+Use the code layout, the existing tests, and the change history (git log --since="[DATE]" --stat) to see where change and complexity concentrate. Timeline: [DATES]. Team: [SIZE AND SKILLS].
+
+Cover: risk assessment (likelihood times impact), what to test deeply versus lightly, test levels and types, the automation approach, environments and data, entry and exit criteria, metrics, and a list of things we deliberately will not test with the reason. Write it to [OUTPUT PATH]. Do not change any source files.`, 'analysis'),
+    P('st2','Strategy','Select regression tests for the current change',['regression','impact analysis','git diff'],
+`Run git diff [BASE BRANCH]...HEAD --name-only to see what changed.
+
+1. Map the changed files to the tests that exercise them (imports, coverage data, naming and test tags).
+2. Include indirect impact through shared libraries and configuration.
+3. Choose the smallest set of tests that gives confidence within [MINUTES] minutes and explain what risk remains for the tests you skip.
+4. Run the selected tests with [TEST COMMAND] and report the results.`),
+    P('st3','Strategy','Release readiness and test summary report',['report','release','metrics'],
+`Read the test results in [CI REPORT PATHS], the open defects in [DEFECT EXPORT] and the coverage report in [COVERAGE PATH].
+
+Write a one-page test summary for stakeholders in [OUTPUT PATH]: executive summary with a clear go or no-go recommendation, scope tested and not tested, results, open defects by severity, risks with mitigations and recommendations. Use plain language and be honest about uncertainty and missing data. Do not change any source files.`, 'analysis'),
+    P('st4','Strategy','Introduce AI assistants into a QA workflow safely',['ai','governance','productivity'],
+`Help me introduce AI coding assistants into our QA workflow responsibly. Team: [SIZE, TOOLS, DOMAIN].
+
+Suggest 6 concrete use cases (test design, data, code, triage, reporting and so on) with the review step each one needs, what data must never be shared, how to measure the benefit (time saved, defects found, escaped defects), and a 4-week pilot plan with success criteria and an exit decision. Reply in chat; do not edit any files.`, 'analysis'),
+
+    // ================= Maintenance
+    P('mt1','Maintenance','Diagnose and fix a flaky test',['flaky','stability','ci'],
+`The test [TEST NAME OR PATH] is flaky ([PASS RATE, E.G. 85 PERCENT]).
+
+1. Run it 30 times with [REPEAT COMMAND] and capture every distinct failure message.
+2. Read the test and the code under test. Rank the likely causes: timing and waits, shared state, test order, data collisions, environment, time-dependent logic, animations.
+3. Apply the fix for the most likely cause only.
+4. Run it 30 times again and report the new pass rate. If it is still flaky, repeat with the next cause. Do not add retries to hide the problem.`),
+    P('mt2','Maintenance','Refactor a long test into clean steps',['refactor','readability','clean code'],
+`Refactor the test in [TEST FILE PATH] into a clean, maintainable one without changing what it verifies.
+
+Extract reusable helpers or page objects, remove duplication, make assertions meaningful, separate setup and cleanup, keep each test focused on one behaviour and use names that read like documentation. Run [TEST COMMAND] before and after, and confirm the same behaviours are still checked. Explain each change briefly.`),
+    P('mt3','Maintenance','Migrate UI tests from one framework to another',['migration','selenium','playwright'],
+`Plan and start a migration of our UI tests from [SELENIUM] to [PLAYWRIGHT].
+
+1. Read the current suite in [TEST DIRECTORY] and summarise its size, structure and shared utilities.
+2. Propose a phased plan: what to rewrite versus wrap, how to run both suites side by side during the transition, and the risks.
+3. Provide a mapping table of common commands and waits.
+4. Convert [ONE EXAMPLE TEST PATH] as a pilot, run both versions, and show that they verify the same behaviour.`),
+
+    // ================= Repo & CI
+    P('rc1','Repo & CI','Map the test landscape of this repository',['onboarding','test inventory','coverage'],
+`Explore this repository and write [OUTPUT PATH, E.G. TESTING.MD] describing how it is tested.
+
+Include: test frameworks and where tests live, how to run each kind of test (exact commands, and verify that they work), required services or environment variables, how CI runs them, rough coverage by area, signs of flakiness or dead tests, and the three biggest gaps. Only write that one file; change nothing else.`),
+    P('rc2','Repo & CI','Write tests for my current diff',['git diff','unit tests','pull request'],
+`Read my uncommitted and recent changes with git diff [BASE BRANCH]...HEAD and git status.
+
+For each changed behaviour, write or update tests that would fail if the change were wrong: the main path, edge cases and error handling. Follow the existing test style and location. Run [TEST COMMAND] and make sure everything passes. In your reply list which behaviours are covered, which are not and why. Do not modify production code.`),
+    P('rc3','Repo & CI','Add a test stage to the CI pipeline',['ci','pipeline','gitlab'],
+`Read the existing pipeline definition [PATH, E.G. .GITLAB-CI.YML] and add a test stage.
+
+Requirements: run [TEST COMMAND], cache dependencies, publish the test report and screenshots as artifacts, fail the pipeline on test failures, run the slow end-to-end tests only on [CONDITION, E.G. MAIN OR NIGHTLY], and keep secrets in CI variables. Validate the YAML syntax locally, show me the diff, and do not push or trigger any pipeline.`),
+    P('rc4','Repo & CI','Write a testing rules file for your AI assistant',['rules','conventions','agents','productivity'],
+`Create [RULES FILE, E.G. AGENTS.MD OR YOUR ASSISTANT'S PROJECT RULES FILE] for this repository's testing conventions.
+
+Base it on how the existing tests are actually written. Include: the exact commands to run unit, integration and end-to-end tests, naming and folder conventions, preferred assertion and mocking styles, how to create test data, what must never be done (no fixed sleeps, no real network calls, no secrets, no editing snapshots blindly) and a definition of done for a new test. Keep it under 60 lines and verify every command works.`),
+    P('rc5','Repo & CI','Find coverage gaps and close the riskiest one',['coverage','gaps','unit tests'],
+`Run [COVERAGE COMMAND] and read the report.
+
+1. List the five riskiest untested areas, weighting business importance and code complexity over raw percentage.
+2. Take the first one: write meaningful tests that check behaviour, not just lines executed.
+3. Re-run coverage, report the change, and run [TEST COMMAND] to confirm everything passes.
+4. Explain why you chose that area and what you would do next.`),
+    P('rc6','Repo & CI','Mutation testing to check how strong the tests are',['mutation testing','test quality'],
+`Run mutation testing on [MODULE PATH] with [MUTATION TESTING TOOL AND COMMAND].
+
+Report the mutation score and group the surviving mutants by what they reveal (missing assertion, untested branch, equivalent mutant). Then add tests that kill the five most meaningful surviving mutants, re-run the tool and report the new score. Do not change production code.`),
+    P('rc7','Repo & CI','Review a pull request for test quality',['code review','pull request','assertions'],
+`Review the pull request or branch [BRANCH OR PR NUMBER] (git diff [BASE BRANCH]...[BRANCH]). Read-only.
+
+Assess the tests: is every changed behaviour covered, are assertions meaningful (not just "no error"), are edge cases and failure paths tested, is anything flaky-prone (sleeps, shared state, time, randomness), and do the tests describe behaviour clearly. List findings by severity with file and line, and say whether you would approve it.`, 'analysis'),
+
+    // ================= Tool-specific: Postman / Newman / Bruno
+    P('pm1','API testing','Postman collection with tests and chaining, run with Newman',['collection','newman','chaining'],
+`Build a Postman collection for the API described in [PATH TO OPENAPI FILE OR ENDPOINT LIST].
+
+1. Create the collection JSON in [OUTPUT DIRECTORY] with folders per resource, a collection-level pre-request script for auth, and requests that chain by saving ids and tokens to variables (pm.collectionVariables.set).
+2. In the Tests tab of every request add pm.test checks for status code, response time under [MS] ms, JSON schema (tv4 or pm.response.to.have.jsonSchema) and the key fields.
+3. Put base URL and credentials in an environment file using placeholder values only, and commit a template of it, never real secrets.
+4. Run: newman run [COLLECTION FILE] -e [ENVIRONMENT FILE] --reporters cli,junit against [LOCAL OR TEST BASE URL] and fix collection problems until it passes. Report the results.`, 'agent', ['Postman']),
+    P('pm2','API testing','Postman data-driven and negative test runs',['data-driven','negative','csv','newman'],
+`Extend the Postman collection [COLLECTION FILE] with data-driven and negative testing.
+
+Create [DATA FILE, CSV OR JSON] with one row per case: input values, expected status and expected error message. Cover valid input, missing and wrong-type fields, boundary values, oversized strings, special characters and unauthorised access. Use pm.iterationData in the pre-request and test scripts, and use pm.expect assertions that read the expected values from the data.
+
+Run: newman run [COLLECTION FILE] -d [DATA FILE] -e [ENVIRONMENT FILE] against [LOCAL OR TEST BASE URL] and report which rows failed and why. Treat unexpected API behaviour as a suspected defect, not a test bug, and say so.`, 'agent', ['Postman']),
+    P('pm3','API testing','Run Newman in CI with reports and safe secrets',['newman','ci','pipeline','reports'],
+`Read the pipeline file [PATH TO CI FILE] and the Postman collection and environment in [DIRECTORY].
+
+Add a job that installs Newman, runs the collection with [ENVIRONMENT FILE] and publishes the JUnit and HTML reports as artifacts. Read secrets only from CI variables (for example $API_TOKEN) and inject them at run time with --env-var. Fail the pipeline on any failed assertion, and add a short README section explaining how to run it locally. Validate the YAML, show me the diff, and do not push or trigger a pipeline.`, 'agent', ['Postman', 'GitLab CI']),
+    P('br1','API testing','Bruno collection as version-controlled .bru files',['bruno','collection','git'],
+`Create a Bruno collection in [DIRECTORY] for the API in [PATH TO OPENAPI FILE OR ENDPOINT LIST].
+
+Use one .bru file per request, grouped by resource. Add assertions (assert block) for status and key fields, tests with expect() for schema and values, and scripts that chain ids and tokens through variables. Create environments for [LOCAL AND TEST] with placeholder secrets that read from process environment variables.
+
+Run: bru run --env [ENVIRONMENT NAME] and fix the collection until it passes. Explain how to run it in CI.`, 'agent', ['Bruno']),
+
+    // ================= Tool-specific: JMeter
+    P('jm1','Performance','Build a JMeter test plan (.jmx) for a user journey',['jmeter','jmx','load test','correlation'],
+`Create an Apache JMeter test plan [OUTPUT PATH.JMX] for this journey: [LOGIN, SEARCH, ADD TO CART, CHECKOUT].
+
+Include: thread group parameterised with properties (users, ramp-up, duration), HTTP Request Defaults, a CSV Data Set Config for users from [CSV PATH], JSON or Regular Expression Extractors to correlate dynamic values (tokens, ids), response assertions, realistic think time with timers, and Transaction Controllers per step. Do not include a View Results Tree listener in the runnable plan.
+
+Run a smoke test only: jmeter -n -t [PLAN.JMX] -Jusers=1 -Jduration=30 -l smoke.jtl -e -o smoke-report against [LOCAL OR TEST URL]. Never run load against production or shared systems without approval. Report any failing samplers.`, 'agent', ['JMeter']),
+    P('jm2','Performance','Parameterise and correlate a recorded JMeter script',['jmeter','correlation','parameterisation'],
+`Read the recorded JMeter plan [PATH TO JMX FILE].
+
+Find hard-coded values that should be dynamic: session ids, CSRF tokens, user names, timestamps, ids copied from earlier responses. For each, add the right extractor (JSON, regex or boundary) or a CSV or function-based parameter, and replace every use. Remove static assets noise, add assertions and timers, and move host, port and credentials into User Defined Variables read from properties.
+
+Show a before and after list of what you changed. Run a one-user smoke test with jmeter -n -t [PLAN.JMX] -l check.jtl against [LOCAL OR TEST URL] only (never production or shared systems) and confirm there are no errors.`, 'agent', ['JMeter']),
+    P('jm3','Performance','Analyse JMeter results (JTL / dashboard)',['jmeter','jtl','p95','analysis'],
+`Read the JMeter results in [PATH TO JTL OR CSV] (and the HTML dashboard in [REPORT DIRECTORY] if present).
+
+For each transaction report: sample count, average, median, p90, p95, p99, max, error rate and throughput. Find the load level or time where p95 first breaches [SLA MS] ms, list the slowest and most error-prone transactions, and show where averages hide tail latency. Look for ramp-up artefacts and coordinated omission. Recommend the next three experiments and what to monitor on the server. Do not change any files other than the report you write to [OUTPUT PATH].`, 'analysis', ['JMeter']),
+    P('jm4','Performance','Run JMeter headless in CI with pass/fail thresholds',['jmeter','ci','thresholds','pipeline'],
+`Read the pipeline file [PATH TO CI FILE] and the plan [PATH TO JMX FILE].
+
+Add a performance job that runs jmeter -n -t [PLAN.JMX] -l results.jtl -e -o report with parameters from CI variables, archives the report, and fails the build when thresholds are breached: p95 above [MS] ms or error rate above [PERCENT] percent. Implement the threshold check with a small script that parses results.jtl. Run it only on [SCHEDULE OR BRANCH] and against [TEST ENVIRONMENT], never production. Validate the YAML and show me the diff without pushing.`, 'agent', ['JMeter', 'GitLab CI']),
+
+    // ================= Tool-specific: Playwright
+    P('pw1','Automation code','Set up a Playwright project with a solid configuration',['playwright','config','setup','typescript'],
+`Set up Playwright in [DIRECTORY] (or review the existing playwright.config.ts) with a production-quality configuration.
+
+Include: baseURL from an environment variable, projects for chromium, firefox and webkit (plus a mobile viewport), retries only on CI, trace on first retry, screenshot and video on failure, reporters (html and junit), sensible timeouts, a testIdAttribute, fullyParallel, and a global setup only if needed. Add npm scripts for headed, UI mode, debug and CI runs.
+
+Create one example test, run npx playwright test, and show that the HTML report opens. Explain each setting you chose in one line.`, 'agent', ['Playwright']),
+    P('pw2','Automation code','Playwright authentication with storage state',['playwright','authentication','storageState'],
+`Make our Playwright tests log in once instead of in every test.
+
+1. Add a setup project that signs in through the API or the UI using test credentials from environment variables, and saves the session to [STORAGE STATE PATH] (git-ignored).
+2. Make the browser projects depend on it and load that storage state.
+3. If we have several roles ([ROLES]), create one state file per role and a fixture to choose it.
+4. Add the state files to .gitignore, and make sure no real credentials are committed.
+
+Run npx playwright test [FILE] and confirm the tests start already signed in.`, 'agent', ['Playwright']),
+    P('pw3','Automation code','Mock and control the network in Playwright tests',['playwright','mocking','route','har'],
+`In [TEST FILE], use Playwright network control to test states that are hard to reach for real.
+
+Using page.route, mock: a slow response, a 500 error, a 401 expiry, an empty list, a very large list and malformed JSON, for the request [ENDPOINT PATTERN]. Assert that the UI shows the right loading, error and empty states and recovers when the next request succeeds. Use routeFromHAR with a recorded file for one realistic scenario. Also assert on outgoing requests (waitForRequest) for payload correctness.
+
+Run npx playwright test [FILE] --repeat-each=3 and make them stable.`, 'agent', ['Playwright']),
+    P('pw4','Automation code','Visual regression tests with Playwright',['playwright','visual','screenshots','snapshots'],
+`Add visual regression tests with toHaveScreenshot for [PAGES OR COMPONENTS].
+
+Make them stable: fixed viewport, disabled animations, masked dynamic regions (dates, ads, avatars), waiting for fonts and images, and a sensible maxDiffPixelRatio. Store snapshots per project and platform, and document how to update them (npx playwright test --update-snapshots) and review the changes in a pull request. Generate the baselines, then run the suite three times to prove it is stable, and report anything that still differs between runs.`, 'agent', ['Playwright']),
+    P('pw5','Maintenance','Debug a failing or flaky Playwright test with traces',['playwright','trace','debugging','flaky'],
+`The Playwright test [TEST NAME AND FILE] fails or is flaky.
+
+1. Run it with npx playwright test [FILE] -g "[TEST NAME]" --trace on --repeat-each=10 and collect the failures.
+2. Read the error output, the HTML report and the trace data (screenshots, network, console) for the failing runs. Compare a passing and a failing run.
+3. Identify the root cause (timing, locator ambiguity, shared state, race with a network call, animation) and fix it with web-first assertions or a better locator. No fixed sleeps and no blind retries.
+4. Run it 10 times again and report the pass rate before and after, with the evidence you used.`, 'agent', ['Playwright']),
+    P('pw6','Repo & CI','Parallel and sharded Playwright runs in CI',['playwright','sharding','ci','gitlab ci'],
+`Read the pipeline in [PATH TO CI FILE] and playwright.config.ts.
+
+Run the Playwright suite sharded across [N] jobs (--shard=i/N), with browsers cached, blob reports uploaded from each shard and merged into a single HTML report in a final job. Set workers appropriately for the runner, fail the pipeline on any failure, and keep the secrets in CI variables. Validate the workflow syntax, run one shard locally with npx playwright test --shard=1/[N] to prove it works, and show me the diff without pushing.`, 'agent', ['Playwright', 'GitLab CI']),
+
+    // ================= Tool-specific: Selenium
+    P('se1','Maintenance','Remove fixed sleeps from a Selenium suite',['selenium','waits','stability'],
+`Search [TEST DIRECTORY] for Thread.sleep, time.sleep and implicit waits.
+
+For each one, replace it with an explicit wait on the real condition (WebDriverWait with ExpectedConditions for visibility, clickability, text or a network-idle signal), and remove the global implicit wait so the two do not mix. Add a small wait helper if one is missing. Run [TEST COMMAND] before and after, compare pass rates and total run time, and report the results per file.`, 'agent', ['Selenium']),
+    P('se2','Repo & CI','Selenium Grid in Docker for parallel cross-browser runs',['selenium grid','docker','parallel','cross-browser'],
+`Create a docker-compose setup in [DIRECTORY] with a Selenium Grid (hub or standalone containers for Chrome and Firefox) and a way to run [TEST COMMAND] in parallel against it.
+
+Add healthchecks so tests start only when the grid is ready, shared memory settings for the browser containers, a configurable remote WebDriver URL in the test code, and an option to record or view sessions for debugging. Run the suite on both browsers, show the results and explain how to scale to more nodes.`, 'agent', ['Selenium', 'Docker']),
+    // ================= Tool-specific: TestNG / SoapUI
+    P('tn1','Automation code','TestNG parallel execution, listeners and retry analyzer',['testng','listeners','parallel','retry'],
+`Improve the TestNG setup in [TEST DIRECTORY] and [PATH TO TESTNG.XML].
+
+Add parallel execution that is safe for our tests (thread-local drivers or clients), data providers for data-driven cases, a listener for logging and screenshots on failure, and a retry analyzer limited to known infrastructure exceptions and reported separately so flakiness stays visible. Run [TEST COMMAND] with parallelism on, fix any shared-state problems that appear, and report time and pass rate before and after.`, 'agent', ['TestNG']),
+    P('so1','API testing','SoapUI / ReadyAPI tests for a SOAP service',['soapui','soap','wsdl','readyapi'],
+`Create SoapUI test suites for the SOAP service described by [WSDL PATH OR URL].
+
+Generate requests for each operation, add assertions (SOAP fault, schema compliance, XPath for key fields, response time), data-driven input from [DATA FILE], and negative cases (missing elements, wrong types, oversized values). Save the project as [PROJECT.XML] with no real credentials in it. Run it from the command line with testrunner.sh -r -j [PROJECT.XML] against [TEST ENDPOINT] and report the results.`, 'agent', ['SoapUI']),
+
+    // ================= Tool-specific: mocks and environments
+    P('dk1','Repo & CI','Dockerised test environment with docker compose',['docker','compose','environment','healthcheck'],
+`Create a docker-compose setup in [DIRECTORY] that starts the application, its database [DATABASE] and any dependencies, seeds test data from [SEED PATH], and runs [TEST COMMAND] in a separate runner container.
+
+Add healthchecks and depends_on conditions so tests start only when services are ready, named volumes cleaned between runs, environment variables from a .env.example (no real secrets), and a single command to run everything and tear it down. Run it end to end, show the output, and explain how to debug a failing service.`, 'agent', ['Docker']),
+
+    // ================= Tool-specific: security, quality and reporting
+    P('sq1','Strategy','SonarQube configuration, coverage import and quality gate',['sonarqube','quality gate','coverage','static analysis'],
+`Configure SonarQube analysis for this repository.
+
+Create sonar-project.properties with sources, tests, exclusions and the path to the coverage report from [COVERAGE TOOL AND REPORT PATH]. Propose a quality gate on new code: coverage at least [PERCENT], no new bugs or vulnerabilities, duplication below [PERCENT], and explain the choices. Add the scanner step to [PATH TO CI FILE] with the token read from a CI variable (never in the file). Run the scan locally only against [SONAR SERVER URL] if it is available, otherwise validate the configuration and explain the commands.`, 'agent', ['SonarQube']),
+    P('tr1','Security','Trivy image and dependency scan in CI with policy',['trivy','container','sca','ci'],
+`Add Trivy scanning to [PATH TO CI FILE] for the image [IMAGE NAME] and the dependencies in [LOCKFILE].
+
+Fail on HIGH and CRITICAL vulnerabilities that have a fix available (trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 [IMAGE NAME]), publish the report as an artifact, and add a .trivyignore with a reason and an expiry date for every accepted risk. Run it locally on [IMAGE NAME], summarise the findings and suggest the safest upgrade for each fixable one.`, 'agent', ['Trivy', 'Docker']),
+    P('jr1','Strategy','Jira or Zephyr test cases as an import file',['jira','zephyr','import'],
+`Convert the test cases in [PATH TO TEST CASE FILE] into the import format for [JIRA OR ZEPHYR] and save it to [OUTPUT PATH].
+
+Map columns correctly (summary, preconditions, steps with expected results, priority, labels, components, linked requirement) and keep steps atomic. Validate the file against the tool's documented template and list anything that does not map. Only produce the file: do not call any Jira API and do not use or request credentials.`, 'agent', ['Jira', 'Zephyr']),
+
+    // ================= Accessibility (extra)
+    P('ac3','Accessibility','Keyboard accessibility tests with Playwright',['keyboard','focus','tab order','skip link'],
+`Write keyboard-accessibility tests with Playwright for [PAGE OR FLOW ROUTE] in [TEST DIRECTORY].
+
+Using page.keyboard, assert that: every interactive element is reachable with Tab and Shift+Tab in a logical order; nothing traps focus (a modal traps it on purpose and releases it on Escape); the focus indicator is visible (check the computed outline or box-shadow); Enter and Space activate buttons and links correctly; arrow keys work in custom widgets such as tabs, menus and listboxes; focus returns to the trigger when a dialog closes; and a skip link takes you to the main content.
+
+Run npx playwright test [FILE] and report each failure as an accessibility defect with the element, the key pressed, the expected behaviour and the actual behaviour. Do not change the application code.`, 'agent', ['Playwright']),
+    P('ac4','Accessibility','Colour contrast audit of CSS and design tokens',['contrast','design tokens','wcag','css'],
+`Audit colour contrast for the design tokens or stylesheets in [PATH TO CSS OR TOKEN FILES].
+
+1. Extract the text and background colour pairs that are used together, including hover, focus, disabled and error states.
+2. Write a small script in [LANGUAGE] that calculates WCAG contrast ratios and run it with [COMMAND]. Check 4.5:1 for normal text, 3:1 for large text, and 3:1 for UI components and focus indicators.
+3. Save a table to [OUTPUT PATH]: pair, where it is used, ratio, pass or fail, and the nearest compliant colour that keeps the brand feel.
+4. Mark the failures I should confirm in the browser with the Chrome DevTools colour contrast picker.
+
+Do not change the stylesheets.`, 'agent', ['Chrome DevTools']),
+    P('ac5','Accessibility','Review and fix accessibility of forms',['forms','labels','errors','autocomplete'],
+`Review the forms in [COMPONENT OR PAGE PATHS] for accessibility and fix the safe issues.
+
+Check that: every control has a visible label that is programmatically associated; required and optional fields are shown in text, not by colour alone; related controls are grouped with fieldset and legend; helper text and errors are linked with aria-describedby; errors are identified in text, announced (role alert, or an error summary that receives focus) and say how to fix the problem; autocomplete is set for personal data fields; and input types and inputmode are right.
+
+Make the safe fixes (labels, associations, error markup) in a small change, add tests for the error flow with [TEST FRAMEWORK], run [TEST COMMAND], and list the issues that need a design decision.`),
+    P('ac6','Accessibility','Manual screen reader test script for a flow',['screen reader','manual testing','announcements'],
+`Write a manual screen reader test script for [FLOW OR PAGE], using the markup in [PATHS].
+
+For each step give the user action, what should be announced (role, name, state, value) and what would indicate a defect. Cover landmark and heading navigation, form fields and errors, buttons and links with unclear names, dynamic updates (live regions, route changes, loading and success messages), modals and focus handling, and tables and lists. Describe expected announcements in general terms so the script works with any screen reader, and add columns for recording the browser and screen reader combination and the result. Write it to [OUTPUT PATH]. Do not change any source files.`, 'analysis'),
+    P('ac7','Accessibility','Review a custom widget against ARIA patterns',['aria','widgets','modal','tabs','combobox'],
+`Review the custom widget [COMPONENT, E.G. MODAL OR TABS OR COMBOBOX] in [PATH] against the WAI-ARIA Authoring Practices pattern for it.
+
+Check roles, names, states and properties (aria-expanded, aria-selected, aria-controls, aria-activedescendant), the keyboard interactions the pattern requires, focus management and announcements. If native HTML can replace the ARIA, say so. Write tests for the keyboard and state behaviour with [TEST FRAMEWORK] and run [TEST COMMAND]. Fix clear defects in a minimal change and list anything that needs a design decision.`),
+    P('ac8','Accessibility','Add axe-core checks to Selenium (Java) tests',['axe-core','selenium','java','testng'],
+`Add automated accessibility checks to our Selenium (Java) tests using axe-core.
+
+Look at the existing page objects and base test class in [TEST DIRECTORY]. Add an AccessibilityChecker helper that injects axe-core (through the project's existing dependency or the axe-core integration for Selenium), runs it on the current page or a given element, filters to WCAG 2.2 A and AA rules and returns each violation with rule id, impact, selector and help URL. Call it from [N] key tests when the page is in its main states: default, error and dialog open. Fail the test only for serious and critical violations, attach the JSON report, and keep a baseline file of known issues with an owner and a date for each.
+
+Run [TEST COMMAND] and report the violations by page.`, 'agent', ['axe-core', 'Selenium', 'TestNG']),
+    P('ac9','Accessibility','Triage axe-core results into a fix plan',['axe-core','triage','prioritisation','report'],
+`Read the axe-core results in [PATH TO AXE JSON OR HTML REPORT].
+
+Group the violations by rule and by component. For each group give the WCAG success criterion, the impact on real users (who is blocked and how), the count, a representative selector and fix, and an effort estimate (S, M or L). Separate quick wins from design-system fixes that clear many violations at once. Produce a prioritised plan for the next two sprints, and list what axe cannot detect that we must still test manually. Write it to [OUTPUT PATH]. Do not change any source files.`, 'analysis', ['axe-core']),
+    P('ac10','Accessibility','Accessibility acceptance criteria for a user story',['acceptance criteria','definition of done','shift-left'],
+`Write accessibility acceptance criteria and a definition of done for the user story in [PATH OR STORY TEXT].
+
+Make them testable: keyboard behaviour, focus order, names and labels, contrast, error handling, announcements of dynamic content, zoom and reflow, and motion. Phrase each as Given, When, Then, and tag which are checked automatically (axe-core), which by a manual keyboard pass, and which need a screen reader. Add a short checklist for the pull request template. Write the result to [OUTPUT PATH]. Do not change any source files.`, 'analysis', ['axe-core']),
+    P('ac11','Accessibility','Manual accessibility guide using Chrome DevTools',['chrome devtools','accessibility tree','manual testing','emulation'],
+`Create a manual accessibility test guide for [PAGE OR COMPONENT] that uses Chrome DevTools only.
+
+Cover: the Accessibility pane and accessibility tree (roles, names and focusable state), the contrast picker in the colour tool, the Rendering tab emulations (prefers-reduced-motion, forced colours, vision deficiencies, prefers-color-scheme), the Elements pane to confirm focus order and tabindex usage, and the Console for axe-core results if it is injected. For each step say what to look at, what a pass looks like and the common defects. Write it to [OUTPUT PATH] as a checklist the team can reuse. Do not change any source files.`, 'analysis', ['Chrome DevTools', 'axe-core']),
+    P('ac12','Accessibility','Zoom, reflow and text spacing tests with Playwright',['reflow','zoom','text spacing','target size'],
+`Write automated Playwright tests for responsive and zoom accessibility on [PAGES] in [TEST DIRECTORY].
+
+Check that: there is no horizontal scrolling and no clipped or overlapping content at a 320 CSS pixel width (reflow); text can be enlarged to 200 percent without loss of content or function; the page still works with the WCAG text spacing overrides injected through CSS (line height 1.5, paragraph spacing 2 times, letter spacing 0.12 em, word spacing 0.16 em); and touch targets are at least 24 by 24 CSS pixels.
+
+Run npx playwright test [FILE], attach screenshots of failures, and report each issue with the viewport and the element. Do not change the application code.`, 'agent', ['Playwright']),
+    P('ac13','Accessibility','Accessibility conformance summary from test evidence',['wcag 2.2','conformance','vpat','report'],
+`Prepare an accessibility conformance summary for [PRODUCT OR RELEASE] from the evidence in [PATHS TO AXE REPORTS, MANUAL TEST RESULTS AND DEFECT LIST].
+
+For each WCAG 2.2 A and AA success criterion say whether it is supported, partially supported, not supported or not applicable, with the evidence and the open defects behind it. Be honest about what was not tested. End with the top risks, a remediation roadmap and what to retest. Do not claim conformance the evidence does not support. Write it to [OUTPUT PATH]. Do not change any source files.`, 'analysis')
+  ];
+  const OLD_TOOLS = { au1:['Playwright'], au2:['Playwright'], au3:['Selenium','TestNG'], au4:['Cucumber'], au7:['axe-core','Playwright'], ac2:['axe-core'], api2:['Postman','Bruno'], api4:['REST Assured'], sc3:['SonarQube','Snyk','Trivy'], rc3:['GitLab CI'], mt3:['Selenium','Playwright'], bg4:['Git'], rc2:['Git'], st2:['Git'] };
+  PROMPTS.forEach(p => { if (OLD_TOOLS[p.id]) p.tools = OLD_TOOLS[p.id]; });
+
+  const $ = s => document.querySelector(s);
+  const esc = s => s.replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+  const cats = ['All', ...[...new Set(PROMPTS.map(p => p.cat))]];
+  const TOOLS = [...new Set(PROMPTS.flatMap(p => p.tools))].sort((a, b) => a.localeCompare(b));
+  const MODES = [['All','All modes'], ['agent','Agent'], ['analysis','Analysis']];
+  const MODE_LABEL = { agent:'Agent', analysis:'Analysis' };
+  const PH = /\[[A-Z0-9 \/,.\-'()_:@*#+=]+\]/g;
+  let cat = 'All', mode = 'All', tool = 'All', q = '', qFlag = null;
+  const vals = {}, openFill = new Set();   // typed values live only in memory: never stored, sent or put in the URL
+
+  // ---------------- Guardrails appended to a prompt when it is copied
+  const GUARD = {
+    agent: `Guardrails (follow these throughout):
+- Secrets and personal data: if my message, any file you read or any output contains credentials (API keys, tokens, passwords, private keys, connection strings) or real personal or customer data, stop and tell me. Do not repeat, log, commit or use them. Name the file and line, tell me to revoke or rotate the exposed credential, and suggest an environment variable or secrets manager instead.
+- Environments: work only against local or test environments. Never run load tests, scans or destructive commands (drop, delete, truncate, force push, rm -rf) against production or shared systems without my explicit approval.
+- Scope: work on a new branch, show a plan before large changes, and do not commit, push or open pull requests unless I ask. Ask before installing dependencies, changing CI or configuration, or doing anything that costs money.
+- Honesty: if something is unclear, ask or list your assumptions instead of guessing. Report failing tests as they are; never weaken or delete a test just to make it pass.`,
+    analysis: `Guardrails:
+- Read-only: do not change, create or delete files except any output file I named, and do not run commands that modify anything.
+- Secrets and personal data: if anything you read contains credentials or real personal data, do not repeat it. Tell me where it is and that it must be revoked or rotated.
+- Honesty: separate facts from guesses, and ask when something is unclear instead of guessing.`
+  };
+
+  // ---------------- Secret and sensitive-data scanner (runs in the browser only)
+  const SAFE_REF = /^(\$|\{|<|%|\[|process\.env|env\(|x{3,}|\*{3,}|your[_-]|changeme|example|placeholder|redacted)/i;
+  const RULES = [
+    ['an AWS access key', /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/],
+    ['a GitHub token', /\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})\b/],
+    ['a Slack token', /\bxox[abprs]-[A-Za-z0-9-]{10,}\b/],
+    ['a Google API key', /\bAIza[0-9A-Za-z_\-]{30,}\b/],
+    ['a Stripe key', /\b[rs]k_(?:live|test)_[0-9A-Za-z]{16,}\b/],
+    ['an API key (sk- style)', /\bsk-[A-Za-z0-9_\-]{20,}\b/],
+    ['a JSON Web Token', /\beyJ[A-Za-z0-9_\-]{8,}\.eyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\b/],
+    ['a private key', /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
+    ['a bearer token', /\bBearer\s+[A-Za-z0-9._\-]{20,}/i],
+    ['a password inside a URL or connection string', /[a-z][a-z0-9+.\-]*:\/\/[^\s:@\/]+:[^\s@\/]+@/i]
+  ];
+  const ASSIGN = /\b(?:pass(?:word|wd)?|pwd|secret|client[_-]?secret|api[_-]?key|access[_-]?token|auth[_-]?token|token)\b\s*[:=]\s*["']?([^\s"'\[\]]{6,})/gi;
+  const TEST_CARDS = ['4242424242424242', '4111111111111111', '5555555555554444'];
+  const luhn = n => { let sum = 0, alt = false; for (let i = n.length - 1; i >= 0; i--) { let d = +n[i]; if (alt) { d *= 2; if (d > 9) d -= 9; } sum += d; alt = !alt; } return sum % 10 === 0; };
+  // Returns findings: level 'block' (must fix before copying) or 'warn' (advice only)
+  function scan(text) {
+    const out = [];
+    if (!text || text.length < 6) return out;
+    for (const [name, rx] of RULES) if (rx.test(text)) out.push({ level:'block', msg:`This looks like ${name}.` });
+    for (const m of text.matchAll(ASSIGN)) if (!SAFE_REF.test(m[1])) { out.push({ level:'block', msg:'This looks like a password, key or token being assigned a value.' }); break; }
+    for (const m of text.matchAll(/\b[A-Za-z0-9+\/_\-]{32,}\b/g)) { const t = m[0]; if (/^[0-9a-f]+$/i.test(t.replace(/-/g, '')) || !/[A-Za-z]/.test(t) || !/\d/.test(t) || SAFE_REF.test(t)) continue; out.push({ level:'block', msg:'This contains a long random-looking string that could be a key or token.' }); break; }
+    for (const m of text.matchAll(/\b(?:\d[ -]?){13,19}\b/g)) { const n = m[0].replace(/\D/g, ''); if (n.length >= 13 && n.length <= 19 && luhn(n) && !TEST_CARDS.includes(n)) { out.push({ level:'block', msg:'This looks like a real payment card number.' }); break; } }
+    if (/\b[A-Z0-9._%+\-]+@(?!example\.(?:com|test|org)\b)[A-Z0-9.\-]+\.[A-Z]{2,}\b/i.test(text)) out.push({ level:'warn', msg:'This looks like a real email address (personal data). Use a fake one such as user@example.test.' });
+    if (/https?:\/\/[^\s]*\b(?:prod|production|live)\b/i.test(text)) out.push({ level:'warn', msg:'This looks like a production URL. Use a local or test environment.' });
+    return out;
+  }
+  const FIX = ' Do not paste real credentials or personal data into a prompt. If it is real, treat it as exposed: revoke or rotate it now, then refer to it by an environment variable name (for example $API_TOKEN) or a placeholder instead.';
+  const alertHTML = f => f.map(x => `<div class="${x.level === 'block' ? 'alert' : 'alert soft'}"><b>${x.level === 'block' ? '⚠ Stop: possible sensitive data.' : 'Heads up.'}</b> ${esc(x.msg)}${x.level === 'block' ? esc(FIX) : ''}</div>`).join('');
+
+  // ---------------- Rendering
+  const rxEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const phNames = p => [...new Set(p.prompt.match(PH) || [])];
+  const fillText = p => p.prompt.replace(PH, m => (vals[p.id] && vals[p.id][m]) ? vals[p.id][m] : m);
+  // Escape plain text, wrap placeholders (filled ones show the typed value) and highlight search terms. Nothing typed is ever injected as markup.
+  function render(p, terms) {
+    let out = '', last = 0, t = p.prompt, v = vals[p.id] || {};
+    for (const m of t.matchAll(PH)) { out += esc(t.slice(last, m.index)); out += v[m[0]] ? `<span class="filled">${esc(v[m[0]])}</span>` : `<span class="ph">${esc(m[0])}</span>`; last = m.index + m[0].length; }
+    out += esc(t.slice(last));
+    return terms.length ? hl(out, terms) : out;
+  }
+  const hl = (html, terms) => html.replace(new RegExp('(' + terms.map(rxEsc).join('|') + ')(?![^<]*>)', 'gi'), '<mark>$1</mark>');
+  const plain = (text, terms) => { const h = esc(text); return terms.length ? hl(h, terms) : h; };
+  const terms = () => (qFlag ? '' : q).toLowerCase().split(/\s+/).filter(Boolean);
+  const matches = (p, ts) => { const hay = (p.title + ' ' + p.cat + ' ' + MODE_LABEL[p.mode] + ' ' + p.tags.join(' ') + ' ' + p.tools.join(' ') + ' ' + p.prompt).toLowerCase(); return ts.every(t => hay.includes(t)); };
+  const pool = () => PROMPTS.filter(p => (cat === 'All' || p.cat === cat) && (mode === 'All' || p.mode === mode) && (tool === 'All' || p.tools.includes(tool)));
+  const guardOn = () => $('#guard').checked;
+  const findings = p => Object.values(vals[p.id] || {}).flatMap(v => scan(v));
+
+  function cardHTML(p, ts) {
+    const names = phNames(p), f = findings(p), blocked = f.some(x => x.level === 'block');
+    return `<article class="card" data-id="${p.id}">
+        <h2>${plain(p.title, ts)}</h2>
+        <div class="meta"><span class="badge ${p.mode}">${p.mode === 'agent' ? '⚙ Agent' : '🔍 Analysis'}</span><span class="cat">${p.cat}</span>${p.tools.map(t => `<span class="tool">${plain(t, ts)}</span>`).join('')}${p.tags.map(t => `<span class="tag">${plain(t, ts)}</span>`).join('')}</div>
+        <pre${openFill.has(p.id) ? ' class="open"' : ''}>${render(p, ts)}</pre>
+        <div class="fill" ${openFill.has(p.id) ? '' : 'hidden'}>${names.length ? names.map(n => `<label>${esc(n.slice(1, -1))}<input type="text" data-ph="${esc(n)}" value="${esc((vals[p.id] || {})[n] || '')}" autocomplete="off" spellcheck="false" placeholder="${esc(n.slice(1, -1).toLowerCase())}"></label>`).join('') : '<span class="mini">Nothing to fill in.</span>'}</div>
+        <div class="alerts">${alertHTML(f)}</div>
+        <div class="actions"><button class="b copy" ${blocked ? 'disabled' : ''}>${blocked ? 'Remove the sensitive value to copy' : 'Copy prompt'}</button><button class="b fillbtn">${openFill.has(p.id) ? 'Hide fields' : 'Fill in values'}</button><button class="b more">${/open/.test(openFill.has(p.id) ? 'open' : '') ? 'Collapse' : 'Show full prompt'}</button><span class="gnote mini" ${guardOn() ? '' : 'hidden'}>+ guardrails added on copy</span></div></article>`;
+  }
+
+  function draw() {
+    const ts = terms(), shown = pool().filter(p => matches(p, ts));
+    $('#count').textContent = `${shown.length} of ${PROMPTS.length} prompts` + (ts.length ? ` matching "${q.trim()}"` : '') + (cat !== 'All' ? ` in ${cat}` : '') + (mode !== 'All' ? ` (${MODE_LABEL[mode]} mode)` : '') + (tool !== 'All' ? ` for ${tool}` : '');
+    $('#list').innerHTML = shown.length ? shown.map(p => cardHTML(p, ts)).join('')
+      : `<div class="empty">No prompts match your search.<br><a href="#" id="reset">Clear search and filters</a></div>`;
+    $('#reset')?.addEventListener('click', e => { e.preventDefault(); q = ''; qFlag = null; cat = 'All'; mode = 'All'; tool = 'All'; $('#q').value = ''; chips(); draw(); });
+    if (ts.length) document.querySelectorAll('.card').forEach(c => { const pre = c.querySelector('pre'), m = pre.querySelector('mark'); if (m && pre.scrollHeight > 150 && m.offsetTop > 120) { pre.classList.add('open'); c.querySelector('.more').textContent = 'Collapse'; } });
+    $('#qalert').innerHTML = qFlag ? alertHTML(qFlag) : ''; $('#qalert').hidden = !qFlag;
+    const u = new URL(location);   // never put a flagged search into the address bar
+    [['q', qFlag ? '' : q.trim()], ['cat', cat === 'All' ? '' : cat], ['mode', mode === 'All' ? '' : mode], ['tool', tool === 'All' ? '' : tool]].forEach(([k, v]) => v ? u.searchParams.set(k, v) : u.searchParams.delete(k));
+    history.replaceState(null, '', u);
+  }
+  function chips() {
+    $('#chips').innerHTML = cats.map(c => `<button class="chip ${c === cat ? 'on' : ''}" data-c="${esc(c)}" aria-pressed="${c === cat}">${esc(c)}${c === 'All' ? '' : ' (' + PROMPTS.filter(p => p.cat === c).length + ')'}</button>`).join('');
+    $('#modes').innerHTML = MODES.map(([k, l]) => `<button class="chip ${k === mode ? 'on' : ''}" data-m="${k}" aria-pressed="${k === mode}">${l}${k === 'All' ? '' : ' (' + PROMPTS.filter(p => p.mode === k).length + ')'}</button>`).join('');
+    $('#tool').innerHTML = `<option value="All">All tools</option>` + TOOLS.map(t => `<option value="${esc(t)}" ${t === tool ? 'selected' : ''}>${esc(t)} (${PROMPTS.filter(p => p.tools.includes(t)).length})</option>`).join('');
+  }
+  async function copy(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) {
+      const t = document.createElement('textarea'); t.value = text; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch (e2) { /* ignore */ } t.remove(); return ok;
+    }
+  }
+  const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } } };
+
+  $('#chips').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; cat = b.dataset.c; chips(); draw(); });
+  $('#modes').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; mode = b.dataset.m; chips(); draw(); });
+  $('#tool').addEventListener('change', e => { tool = e.target.value; draw(); });
+  $('#guard').addEventListener('change', e => { store.set('qa:prompt-guard', e.target.checked ? '1' : '0'); document.querySelectorAll('.gnote').forEach(n => n.hidden = !e.target.checked); });
+  $('#q').addEventListener('input', e => { q = e.target.value; const f = scan(q).filter(x => x.level === 'block'); qFlag = f.length ? f : null; draw(); });
+  $('#list').addEventListener('input', e => {
+    const inp = e.target.closest('input[data-ph]'); if (!inp) return; const card = inp.closest('.card'), p = PROMPTS.find(x => x.id === card.dataset.id);
+    (vals[p.id] = vals[p.id] || {})[inp.dataset.ph] = inp.value;
+    const f = findings(p), blocked = f.some(x => x.level === 'block');
+    card.querySelector('pre').innerHTML = render(p, terms()); card.querySelector('.alerts').innerHTML = alertHTML(f);
+    const cb = card.querySelector('.copy'); cb.disabled = blocked; cb.textContent = blocked ? 'Remove the sensitive value to copy' : 'Copy prompt';
+  });
+  $('#list').addEventListener('click', async e => {
+    const card = e.target.closest('.card'); if (!card) return; const p = PROMPTS.find(x => x.id === card.dataset.id), pre = card.querySelector('pre');
+    if (e.target.classList.contains('copy') && !e.target.disabled) {
+      const text = fillText(p) + (guardOn() ? '\n\n' + GUARD[p.mode] : '');
+      const ok = await copy(text), b = e.target;
+      if (!ok) { const r = document.createRange(); r.selectNodeContents(pre); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); pre.classList.add('open'); }
+      b.textContent = ok ? 'Copied!' : 'Press Ctrl/Cmd+C'; b.classList.toggle('done', ok); setTimeout(() => { b.textContent = 'Copy prompt'; b.classList.remove('done'); }, 1600);
+    }
+    if (e.target.classList.contains('fillbtn')) { const open = !openFill.has(p.id); open ? openFill.add(p.id) : openFill.delete(p.id); card.querySelector('.fill').hidden = !open; e.target.textContent = open ? 'Hide fields' : 'Fill in values'; if (open) pre.classList.add('open'); }
+    if (e.target.classList.contains('more')) { const open = pre.classList.toggle('open'); e.target.textContent = open ? 'Collapse' : 'Show full prompt'; }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === '/' && document.activeElement !== $('#q') && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); $('#q').focus(); }
+    if (e.key === 'Escape' && document.activeElement === $('#q')) { q = ''; qFlag = null; $('#q').value = ''; draw(); }
+  });
+  $('#gtext').innerHTML = `<p><b>For agent prompts</b></p><pre class="open">${esc(GUARD.agent)}</pre><p><b>For analysis prompts</b></p><pre class="open">${esc(GUARD.analysis)}</pre>`;
+  $('#guard').checked = store.get('qa:prompt-guard') !== '0';
+  const sp = new URLSearchParams(location.search); q = sp.get('q') || ''; { const f = scan(q).filter(x => x.level === 'block'); if (f.length) { qFlag = f; q = ''; } }
+  cat = cats.includes(sp.get('cat')) ? sp.get('cat') : 'All'; mode = MODES.some(m => m[0] === sp.get('mode')) ? sp.get('mode') : 'All'; tool = TOOLS.includes(sp.get('tool')) ? sp.get('tool') : 'All'; $('#q').value = q;
+  $('#yr').textContent = new Date().getFullYear(); chips(); draw();
+</script>
+</body>
+</html>
