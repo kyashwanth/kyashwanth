@@ -23,16 +23,16 @@ const CATS = { status:'Wrong status code', validation:'Missing validation', auth
 const stage = QA.$('#stage');
 stage.innerHTML = `<div class="two">
   <div class="stack"><div class="panel"><h2>Request</h2>
-    <div class="row2"><select class="in" id="m" style="width:110px"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select><input class="in" id="p" value="/books" style="flex:1"></div>
-    <label class="l">Authorization</label><select class="in" id="a"><option value="">(none)</option><option>user1-token</option><option>user2-token</option><option>admin-token</option></select>
-    <label class="l">JSON body</label><textarea class="in" id="b" placeholder='{"title":"Emma","price":8}'></textarea>
+    <div class="row2"><select class="in" id="m" aria-label="HTTP method" style="width:110px"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select><input class="in" id="p" value="/books" aria-label="Request path" style="flex:1"></div>
+    <label class="l" for="a">Authorization</label><select class="in" id="a"><option value="">(none)</option><option>user1-token</option><option>user2-token</option><option>admin-token</option></select>
+    <label class="l" for="b">JSON body</label><textarea class="in" id="b" placeholder='{"title":"Emma","price":8}'></textarea>
     <div class="actions"><button class="btn" id="send">Send ▶</button><button class="btn small ghost" id="hint">💡 Hint</button><button class="btn small ghost" id="fin">🏁 Finish</button></div>
     <p class="mini">Examples: <a href="#" data-ex="GET|/books||">list</a> · <a href="#" data-ex="GET|/books/1||">book 1</a> · <a href="#" data-ex='POST|/books||{"title":"Ulysses","price":15}'>create</a> · <a href="#" data-ex="DELETE|/books/2|admin-token|">delete</a></p></div>
   <div class="panel"><h2>API docs</h2><div class="mini" style="line-height:1.7"><code>GET /books?limit=n</code> list books<br><code>GET /books/{id}</code> one book (price is a number)<br><code>POST /books</code> needs <b>title</b> (text) and <b>price</b> (number ≥ 0)<br><code>DELETE /books/{id}</code> admin token only<br><code>GET /users/{id}/orders</code> only that user, or admin<br>Use standard REST status codes. Tokens: user1-token, user2-token, admin-token.</div></div></div>
-  <div class="stack"><div class="panel"><h2>Response</h2><div id="out" class="res">Send a request to see the response.</div>
-    <label class="l">What is wrong with this response?</label><select class="in" id="rc">${Object.entries(CATS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+  <div class="stack"><div class="panel"><h2>Response</h2><div id="out" class="res" aria-live="polite">Send a request to see the response.</div>
+    <label class="l" for="rc">What is wrong with this response?</label><select class="in" id="rc">${Object.entries(CATS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
     <div class="actions"><button class="btn" id="rep" disabled>🐞 Report bug</button></div></div>
-  <div class="panel"><h2>Bug report</h2><ul id="log"><li class="empty">No bugs reported yet.</li></ul></div></div></div>`;
+  <div class="panel"><h2>Bug report</h2><div role="log" aria-live="polite" aria-label="Bug report log"><ul id="log"><li class="empty">No bugs reported yet.</li></ul></div></div></div></div>`;
 const $ = QA.$;
 let active, found, score, hints, last, tm, running = false, books, nextId;
 const handle = q => {

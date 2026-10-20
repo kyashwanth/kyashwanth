@@ -30,16 +30,16 @@ const draw = () => QA.hud([`Scenario ${Math.min(si + 1, list.length)} / ${list.l
 function show() {
   sc = list[si]; picks = new Set(); ran = new Map(); spent = 0;
   stage.innerHTML = `<div class="panel"><h2>Scenario ${si + 1}</h2><p>🔧 <b>Files changed:</b> <code>${sc.change}</code>. Regression tests are failing somewhere. Spend up to <b>${sc.budget} minutes</b> of test time to find the culprit module.</p>
-    <div class="stack" id="tl">${sc.tests.map((x, i) => `<div class="tcard" data-i="${i}" style="cursor:pointer"><b>${x.n}</b> <span class="mini">· ${x.c} min</span> <span class="res-pill"></span><div>${x.cov.map(c => `<span class="tag2">${c}</span>`).join('')}</div></div>`).join('')}</div>
-    <div class="actions"><button class="btn" id="go2">Run selected tests</button></div><div class="fb" id="fb"></div>
-    <label class="l">Which module contains the bug?</label><select class="in" id="cu"><option value="">Choose…</option>${MODS.map(m => `<option>${m}</option>`).join('')}</select>
+    <div class="stack" id="tl">${sc.tests.map((x, i) => `<div class="tcard" data-i="${i}" role="checkbox" aria-checked="false" tabindex="0" style="cursor:pointer"><b>${x.n}</b> <span class="mini">· ${x.c} min</span> <span class="res-pill"></span><div>${x.cov.map(c => `<span class="tag2">${c}</span>`).join('')}</div></div>`).join('')}</div>
+    <div class="actions"><button class="btn" id="go2">Run selected tests</button></div><div class="fb" id="fb" aria-live="polite"></div>
+    <label class="l" for="cu">Which module contains the bug?</label><select class="in" id="cu"><option value="">Choose…</option>${MODS.map(m => `<option>${m}</option>`).join('')}</select>
     <div class="actions"><button class="btn" id="sub2">Submit culprit</button></div></div>`;
-  document.querySelectorAll('.tcard').forEach(c => c.onclick = () => { const i = +c.dataset.i; if (ran.has(i)) return; picks.has(i) ? picks.delete(i) : picks.add(i); c.classList.toggle('sel'); });
+  document.querySelectorAll('.tcard').forEach(c => { const toggle = () => { const i = +c.dataset.i; if (ran.has(i)) return; picks.has(i) ? picks.delete(i) : picks.add(i); c.classList.toggle('sel'); c.setAttribute('aria-checked', String(picks.has(i))); }; c.onclick = toggle; c.onkeydown = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } }; });
   $('#go2').onclick = () => {
     const cost = [...picks].reduce((s, i) => s + sc.tests[i].c, 0), fb = $('#fb');
     if (!picks.size) return; if (spent + cost > sc.budget) { fb.className = 'fb miss'; fb.textContent = `Over budget: that run costs ${cost} min but only ${sc.budget - spent} remain.`; return; }
     spent += cost; fb.className = 'fb'; fb.textContent = '';
-    picks.forEach(i => { const fail = sc.tests[i].cov.includes(sc.culprit); ran.set(i, fail); const c = document.querySelector(`.tcard[data-i="${i}"]`); c.classList.remove('sel'); c.querySelector('.res-pill').innerHTML = `<span class="pill ${fail ? 'r' : 'g'}">${fail ? 'FAIL' : 'PASS'}</span>`; });
+    picks.forEach(i => { const fail = sc.tests[i].cov.includes(sc.culprit); ran.set(i, fail); const c = document.querySelector(`.tcard[data-i="${i}"]`); c.classList.remove('sel'); c.setAttribute('aria-checked', 'false'); c.setAttribute('aria-disabled', 'true'); c.querySelector('.res-pill').innerHTML = `<span class="pill ${fail ? 'r' : 'g'}">${fail ? 'FAIL' : 'PASS'}</span>`; });
     picks.clear(); draw();
   };
   $('#sub2').onclick = () => {

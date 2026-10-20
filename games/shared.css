@@ -111,3 +111,13 @@ svg.chart { width:100%; height:200px; background:#0b0d16; border:1px solid var(-
 .tg span { color:var(--muted); font-size:12px; }
 .tg input { accent-color:var(--a2); width:16px; height:16px; }
 .embed .tg { display:none; }
+
+/* accessibility: skip link, focus indicators, reduced motion, screen-reader-only text */
+.skip { position:absolute; left:12px; top:-60px; background:var(--a2); color:#07080d; padding:8px 14px; border-radius:8px; font-weight:700; z-index:50; }
+.skip:focus { top:12px; }
+:focus-visible { outline:2px solid var(--a2); outline-offset:2px; }
+#stage:focus { outline:none; }
+.app [tabindex]:focus-visible { outline:3px solid #5b4bdb; outline-offset:2px; }
+.sr-only { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+button.cell { border:0; font:inherit; color:inherit; cursor:pointer; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }

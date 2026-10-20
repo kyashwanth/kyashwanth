@@ -27,11 +27,11 @@ function update() {
 QA.onStart(lv => {
   L = LV[lv]; combos = L.P.reduce((acc, vals, i) => acc.flatMap(a => vals.map((_, v) => [...a, v])), [[]]);
   ALLP = new Set(combos.flatMap(pairs)); picked = new Set(); running = true;
-  stage.innerHTML = `<div class="panel"><div class="prompt">Choose your test runs (${combos.length} possible).</div><div style="height:8px;background:rgba(255,255,255,.08);border-radius:6px;margin:10px 0"><div id="bar" style="height:100%;width:0;background:linear-gradient(90deg,var(--a1),var(--a2));border-radius:6px;transition:width .2s"></div></div><p class="hint" id="miss"></p>
-    <div class="opts cols" id="grid">${combos.map((c, i) => `<button class="opt" data-i="${i}">${name(c)}</button>`).join('')}</div>
+  stage.innerHTML = `<div class="panel"><div class="prompt">Choose your test runs (${combos.length} possible).</div><div style="height:8px;background:rgba(255,255,255,.08);border-radius:6px;margin:10px 0"><div id="bar" style="height:100%;width:0;background:linear-gradient(90deg,var(--a1),var(--a2));border-radius:6px;transition:width .2s"></div></div><p class="hint" id="miss" aria-live="polite"></p>
+    <div class="opts cols" id="grid">${combos.map((c, i) => `<button class="opt" data-i="${i}" aria-pressed="false">${name(c)}</button>`).join('')}</div>
     <div class="actions"><button class="btn" id="sub" disabled>Submit plan</button><button class="btn small ghost" id="clr">Clear</button></div></div>`;
-  stage.querySelectorAll('.opt').forEach(b => b.onclick = () => { const i = +b.dataset.i; picked.has(i) ? picked.delete(i) : picked.add(i); b.classList.toggle('sel'); update(); });
-  $('#clr').onclick = () => { picked.clear(); stage.querySelectorAll('.opt').forEach(b => b.classList.remove('sel')); update(); };
+  stage.querySelectorAll('.opt').forEach(b => b.onclick = () => { const i = +b.dataset.i; picked.has(i) ? picked.delete(i) : picked.add(i); b.classList.toggle('sel'); b.setAttribute('aria-pressed', String(picked.has(i))); update(); });
+  $('#clr').onclick = () => { picked.clear(); stage.querySelectorAll('.opt').forEach(b => { b.classList.remove('sel'); b.setAttribute('aria-pressed', 'false'); }); update(); };
   $('#sub').onclick = () => {
     const n = picked.size, score = Math.round(300 * L.opt / n), [e, t] = n === L.opt ? ['🏆', `Optimal: ${n} runs!`] : n <= L.opt + 2 ? ['🥈', `Nice: ${n} runs`] : ['🧐', `Covered, but ${n} runs is wasteful`];
     QA.end(e, t, `${n} runs cover all ${ALLP.size} pairs, versus ${combos.length} for every combination (${Math.round((1 - n / combos.length) * 100)}% saved). Score ${score}.`, 'Most defects are triggered by one or two settings, so pairwise gives strong coverage for far fewer tests.', score);

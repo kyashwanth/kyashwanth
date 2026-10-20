@@ -19,26 +19,41 @@ const QA = (() => {
     document.title = c.title + ' — QA Games';
     document.head.insertAdjacentHTML('beforeend', `<link rel=icon href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E${encodeURIComponent(c.emoji)}%3C/text%3E%3C/svg%3E">`);
     document.body.innerHTML = `
-    <div class="wrap">
-      <div class="top"><div><h1>${c.emoji} ${c.title}</h1><a href="index.html">← All games</a></div><div class="hud" id="hud"></div></div>
-      <div id="stage"></div>
-    </div>
-    <div class="overlay" id="start"><div class="modal"><div class="big">${c.emoji}</div><span class="tag">${c.aspect}</span><h2>${c.title}</h2><p>${c.intro}</p>
-      <div class="levels">${LV.map(l => `<button class="lv" data-l="${l}">${l[0].toUpperCase() + l.slice(1)}</button>`).join('')}</div>
+    <a class="skip" href="#stage">Skip to the game</a>
+    <main class="wrap">
+      <div class="top"><div><h1><span aria-hidden="true">${c.emoji}</span> ${c.title}</h1><a href="index.html">← All games</a></div><div class="hud" id="hud" role="group" aria-label="Game status"></div></div>
+      <div id="stage" tabindex="-1"></div>
+    </main>
+    <div class="overlay" id="start" role="dialog" aria-modal="true" aria-labelledby="start-title"><div class="modal"><div class="big" aria-hidden="true">${c.emoji}</div><span class="tag">${c.aspect}</span><h2 id="start-title">${c.title}</h2><p>${c.intro}</p>
+      <div class="levels" role="group" aria-label="Difficulty level">${LV.map(l => `<button class="lv" data-l="${l}" aria-pressed="false">${l[0].toUpperCase() + l.slice(1)}</button>`).join('')}</div>
       <p id="lvinfo"></p>${c.timed ? '<label class="tg"><input type="checkbox" id="tmr"> ⏱ Timer <span>(off: no countdown, no time bonus)</span></label>' : ''}<button class="btn" id="go">Start</button></div></div>
-    <div class="overlay hide" id="end"><div class="modal"><div class="big" id="e-emoji"></div><h2 id="e-title"></h2><p id="e-text"></p><div class="missed" id="e-extra"></div><button class="btn" id="again">Play again</button><a class="btn ghost" href="index.html">All games</a></div></div>`;
+    <div class="overlay hide" id="end" role="dialog" aria-modal="true" aria-labelledby="e-title" aria-describedby="e-text"><div class="modal"><div class="big" id="e-emoji" aria-hidden="true"></div><h2 id="e-title"></h2><p id="e-text"></p><div class="missed" id="e-extra"></div><button class="btn" id="again">Play again</button><a class="btn ghost" href="index.html">All games</a></div></div>`;
     const paint = () => {
-      document.querySelectorAll('.lv').forEach(b => b.classList.toggle('on', b.dataset.l === level));
+      document.querySelectorAll('.lv').forEach(b => { const on = b.dataset.l === level; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
       $('#lvinfo').textContent = (c.levelInfo || {})[level] || '';
     };
     document.querySelectorAll('.lv').forEach(b => b.onclick = () => { level = b.dataset.l; if (!embed) store.set('qa:level', level); paint(); });
     paint();
     if (c.timed) { const t = $('#tmr'); t.checked = timersOn(); t.onchange = () => { if (!embed) store.set('qa:timers', t.checked); }; }
+    // Modal behaviour: Tab and Shift+Tab wrap inside whichever dialog is open
+    ['start', 'end'].forEach(id => $('#' + id).addEventListener('keydown', e => {
+      if (e.key !== 'Tab') return;
+      const f = [...$('#' + id).querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select, textarea')].filter(el => el.offsetParent !== null);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }));
+    if (!embed) { sync(); $('#go').focus(); }   // keyboard users land on the Start button
   }
+  // While a dialog is open the game behind it is inert (not focusable, hidden from assistive tech)
+  const sync = () => { const m = $('main'); if (m) m.inert = !!document.querySelector('.overlay:not(.hide)'); };
+  const openDlg = (id, focusSel) => { $('#' + id).classList.remove('hide'); sync(); $(focusSel).focus(); };
+  const closeDlg = id => { $('#' + id).classList.add('hide'); sync(); };
   const hud = items => { $('#hud').innerHTML = items.map(t => `<span class="chip">${t}</span>`).join(''); };
   const onStart = fn => {
-    $('#go').onclick = () => { $('#start').classList.add('hide'); fn(level); };
-    $('#again').onclick = () => { $('#end').classList.add('hide'); $('#start').classList.remove('hide'); };
+    $('#go').onclick = () => { closeDlg('start'); fn(level); if (!embed) $('#stage').focus({ preventScroll: true }); };
+    $('#again').onclick = () => { closeDlg('end'); openDlg('start', '#go'); };
     if (embed) setTimeout(() => $('#go').click(), 0);   // interview mode: skip the start screen
   };
   const timer = (sec, draw, done) => {
@@ -63,7 +78,7 @@ const QA = (() => {
       parent.postMessage({ type:'qa-result', id:cfg.id, level, score, pct:max && score !== null ? Math.max(0, Math.min(1, score / max)) : null, title }, '*');
     }
     $('#e-emoji').textContent = emoji; $('#e-title').textContent = title; $('#e-text').textContent = text; $('#e-extra').innerHTML = extra;
-    $('#end').classList.remove('hide');
+    openDlg('end', '#again');
   };
 
   // ---- inspector helpers (a tiny devtools: size, contrast, element info) ----
@@ -77,9 +92,11 @@ const QA = (() => {
     frame(c);
     document.head.appendChild(Object.assign(document.createElement('style'), { textContent: c.css || '' }));
     $('#stage').innerHTML = `<div class="layout"><div id="app" class="app"></div>
-      <aside class="side"><div class="panel"><h2>Inspector</h2><div id="insp" class="insp">Click any element on the page to inspect it, then report it if you think it is a defect.</div>
+      <aside class="side"><div class="panel"><h2>Inspector</h2><p class="hint" style="margin-top:0">Keyboard: Tab into the page, arrow keys move between elements, Enter inspects, R reports the focused element.</p>
+        <div id="insp" class="insp" aria-live="polite">Click or focus any element on the page to inspect it, then report it if you think it is a defect.</div>
         <div class="actions"><button class="btn small" id="rep" disabled>🐞 Report bug</button><button class="btn small ghost" id="hint">💡 Hint</button><button class="btn small ghost" id="fin">🏁 Finish</button></div></div>
-      <div class="panel" style="margin-top:14px"><h2>Bug report</h2><ul id="log"></ul></div></aside></div>`;
+      <div class="panel" style="margin-top:14px"><h2>Bug report</h2><div role="log" aria-live="polite" aria-label="Bug report log"><ul id="log"></ul></div></div></aside></div>`;
+    $('#app').setAttribute('role', 'group'); $('#app').setAttribute('aria-label', 'Page under test');
     const app = $('#app'), log = $('#log'), rep = $('#rep'), hint = $('#hint');
     let active, bugs, found, score, hints, sel, tm, running = false;
     const draw = (left = tm ? tm.left() : 0) => hud([`Bugs: ${found ? found.size : 0} / ${bugs ? bugs.length : 0}`, `Score: ${score || 0}`, clock(left)]);
@@ -102,10 +119,29 @@ const QA = (() => {
       end(e, t, `You found ${n} of ${total} bugs. Final score: ${score}${bonus ? ` (includes +${bonus} time bonus)` : ''}.`,
         missed.length ? '<b>Missed:</b><ul>' + missed.map(b => `<li>${b.text}</li>`).join('') + '</ul>' : '', score);
     }
-    app.addEventListener('click', e => {
-      if (!running || e.target === app) return;
-      clearSel(); sel = e.target; sel.classList.add('sel-el'); rep.disabled = false; inspect(sel);
+    const select = el => { clearSel(); sel = el; sel.classList.add('sel-el'); rep.disabled = false; inspect(sel); };
+    app.addEventListener('click', e => { if (running && e.target !== app) select(e.target); });
+    // Keyboard support: every element that has text or inspector info is reachable (roving tabindex + arrow keys)
+    let targets = [];
+    const hasOwnText = el => [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+    const focusTarget = el => { targets.forEach(t => { t.tabIndex = t === el ? 0 : -1; }); el.focus(); };
+    const makeNavigable = () => {
+      const ids = new Set(bugs.flatMap(b => b.els));
+      targets = [...app.querySelectorAll('*')].filter(el => el.tagName !== 'STYLE' && el.tagName !== 'SCRIPT' && (hasOwnText(el) || el.dataset.info || ids.has(el.id)));
+      targets.forEach((el, i) => { el.tabIndex = i === 0 ? 0 : -1; });
+    };
+    app.addEventListener('focusin', e => { if (targets.includes(e.target)) targets.forEach(t => { t.tabIndex = t === e.target ? 0 : -1; }); });
+    app.addEventListener('keydown', e => {
+      if (!running) return; const i = targets.indexOf(e.target); if (i < 0) return;
+      const move = j => { e.preventDefault(); focusTarget(targets[Math.max(0, Math.min(targets.length - 1, j))]); };
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') move(i + 1);
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') move(i - 1);
+      else if (e.key === 'Home') move(0);
+      else if (e.key === 'End') move(targets.length - 1);
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(e.target); }
+      else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); select(e.target); rep.click(); }
     });
+    app.addEventListener('keyup', e => { if (e.key === ' ' && targets.includes(e.target)) e.preventDefault(); });
     rep.onclick = () => {
       if (!running || !sel) return;
       const bug = bugFor(sel), target = sel;
@@ -125,15 +161,17 @@ const QA = (() => {
       const b = bugs.find(b => !found.has(b.id)); if (!b) return;
       hints--; score -= 50; const el = document.getElementById(b.els[0]); el.classList.add('pulse'); setTimeout(() => el.classList.remove('pulse'), 2600);
       hint.textContent = `💡 Hint (${hints})`; hint.disabled = hints <= 0; draw();
+      if (targets.includes(el)) focusTarget(el);   // bring keyboard focus to the hinted element
     };
     onStart(lv => {
       const L = c.levels[lv]; active = new Set(L.bugs); bugs = c.bugs.filter(b => active.has(b.id));
       app.innerHTML = c.app(id => active.has(id));
       found = new Set(); score = 0; hints = L.hints; running = true; clearSel();
       log.innerHTML = '<li class="empty">No bugs reported yet.</li>';
-      $('#insp').textContent = 'Click any element on the page to inspect it, then report it if you think it is a defect.';
+      $('#insp').textContent = 'Click or focus any element on the page to inspect it, then report it if you think it is a defect.';
       hint.textContent = `💡 Hint (${hints})`; hint.disabled = hints <= 0;
       tm?.stop(); tm = timer(L.seconds, draw, finish);
+      makeNavigable();
     });
   }
   return { $, LV, store, frame, hud, onStart, timer, clock, end, rate, hunt };

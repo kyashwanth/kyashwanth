@@ -25,9 +25,10 @@ function move(id, col) {
   if (!running) return; const b = bugs.find(b => b.id === id);
   if (col === 'sprint' && place[id] !== 'sprint' && used() + b.effort > cap) { $('#msg').textContent = `No room: "${b.t}" needs ${b.effort} pts, only ${cap - used()} left.`; return; }
   $('#msg').textContent = ''; place[id] = col; render();
+  const moved = document.querySelector(`.bug[data-id="${id}"]`); if (moved) moved.focus();   // keep keyboard focus on the card that moved
 }
 function render() {
-  stage.innerHTML = `<p class="mini" id="msg"></p><div class="board">${COLS.map(([k, n]) => `<div class="col" data-c="${k}"><h3>${n}${k === 'sprint' ? ` (${used()}/${cap})` : ''}</h3>${bugs.filter(b => place[b.id] === k).map(b => `<div class="bug" draggable="true" data-id="${b.id}"><b>${b.t}</b><div class="meta">${b.dup ? 'looks like a duplicate' : `impact ${b.value}/10 · effort ${b.effort} pts`}${b.crit ? ' · 🔴 critical' : ''}</div><div class="mv">${COLS.filter(c => c[0] !== 'inbox' && c[0] !== k).map(c => `<button data-m="${c[0]}">${c[1]}</button>`).join('')}</div></div>`).join('')}</div>`).join('')}</div>
+  stage.innerHTML = `<p class="mini" id="msg" role="status"></p><div class="board">${COLS.map(([k, n]) => `<div class="col" data-c="${k}" role="group" aria-label="${n}${k === 'sprint' ? ` (${used()} of ${cap} points used)` : ''}"><h3>${n}${k === 'sprint' ? ` (${used()}/${cap})` : ''}</h3>${bugs.filter(b => place[b.id] === k).map(b => `<div class="bug" draggable="true" data-id="${b.id}" tabindex="-1" role="group" aria-label="${b.t.replace(/"/g, '')}"><b>${b.t}</b><div class="meta">${b.dup ? 'looks like a duplicate' : `impact ${b.value}/10 · effort ${b.effort} pts`}${b.crit ? ' · 🔴 critical' : ''}</div><div class="mv">${COLS.filter(c => c[0] !== 'inbox' && c[0] !== k).map(c => `<button data-m="${c[0]}" aria-label="Move to ${c[1]}: ${b.t.replace(/"/g, '')}">${c[1]}</button>`).join('')}</div></div>`).join('')}</div>`).join('')}</div>
     <div class="actions"><button class="btn" id="sub">Submit sprint plan</button></div>`;
   document.querySelectorAll('.bug').forEach(el => {
     el.ondragstart = e => e.dataTransfer.setData('text/plain', el.dataset.id);

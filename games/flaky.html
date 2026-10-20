@@ -17,15 +17,15 @@ const LV = {
 const stage = QA.$('#stage'), $ = QA.$;
 stage.innerHTML = `<div class="panel"><h2>Suite results</h2><div style="overflow-x:auto"><table class="matrix" id="mx"></table></div>
   <p class="hint">Reading guide: a test that starts failing and <b>stays</b> failing is <b>broken</b>; one that fails <b>at random</b> is <b>flaky</b>; 🔥 means the CI infrastructure failed, not the test.</p>
-  <div class="res" id="dt" style="margin-top:12px">Click a result cell to read its error.</div>
+  <div class="res" id="dt" aria-live="polite" style="margin-top:12px">Click a result cell to read its error.</div>
   <div class="actions"><button class="btn" id="run">Run suite ▶</button><button class="btn" id="sub">Submit classification</button></div></div>`;
 let L, k, score = 0, running = false, lv0;
 const cellOf = (t, i) => L.infra.includes(i) ? 'I' : t.seq[i];
 const msg = (t, c) => c === 'I' ? 'Error: connect ECONNREFUSED test-db:5432 (CI node ci-7)' : c === 'F' ? (t.err || 'AssertionError: expected true, got false') : c === 'T' ? 'TimeoutError: waiting for selector .ready (5000ms)' : 'passed';
 function render() {
   const head = `<tr><th>Test</th>${Array.from({ length:k }, (_, i) => `<th>#${i + 1}</th>`).join('')}<th>Verdict</th></tr>`;
-  $('#mx').innerHTML = head + L.tests.map((t, ti) => `<tr><td>${t.n}</td>${Array.from({ length:k }, (_, i) => { const c = cellOf(t, i); return `<td><span class="cell ${c.toLowerCase()}" data-t="${ti}" data-i="${i}">${c === 'P' ? '✓' : c === 'I' ? '🔥' : c === 'T' ? '⏱' : '✗'}</span></td>`; }).join('')}
-    <td><select class="in" data-v="${ti}" style="padding:4px"><option value="">?</option><option value="stable">Stable</option><option value="flaky">Flaky</option><option value="broken">Broken</option></select></td></tr>`).join('');
+  $('#mx').innerHTML = head + L.tests.map((t, ti) => `<tr><th scope="row">${t.n}</th>${Array.from({ length:k }, (_, i) => { const c = cellOf(t, i); return `<td><button type="button" class="cell ${c.toLowerCase()}" data-t="${ti}" data-i="${i}" aria-label="${t.n}, run ${i + 1}: ${{ P:'passed', F:'failed', T:'timed out', I:'infrastructure failure' }[c]}">${c === 'P' ? '✓' : c === 'I' ? '🔥' : c === 'T' ? '⏱' : '✗'}</button></td>`; }).join('')}
+    <td><select class="in" data-v="${ti}" aria-label="Your verdict for ${t.n}" style="padding:4px"><option value="">?</option><option value="stable">Stable</option><option value="flaky">Flaky</option><option value="broken">Broken</option></select></td></tr>`).join('');
   document.querySelectorAll('.cell').forEach(c => c.onclick = () => { const t = L.tests[+c.dataset.t], ch = cellOf(t, +c.dataset.i); $('#dt').textContent = `${t.n} · run #${+c.dataset.i + 1}\n${msg(t, ch)}`; });
 }
 const draw = () => QA.hud([`Runs left: ${L ? L.runs - k : 0}`, `Score: ${score}`]);

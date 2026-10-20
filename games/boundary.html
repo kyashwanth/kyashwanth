@@ -31,14 +31,14 @@ function finish() {
 }
 function build() {
   $('#fields').innerHTML = keys.map(k => `<div class="panel" data-k="${k}"><h2>${FIELDS[k].label}</h2><p class="hint" style="margin-top:0">Rule: ${FIELDS[k].spec}</p>
-    <div class="row2"><input class="in" style="flex:1" placeholder="${FIELDS[k].num ? 'type a number' : 'type some text'}"><button class="btn small">Test</button></div><div class="hist"></div></div>`).join('');
+    <div class="row2"><input class="in" style="flex:1" aria-label="${FIELDS[k].label}: value to test" placeholder="${FIELDS[k].num ? 'type a number' : 'type some text'}"><button class="btn small">Test</button></div><div class="hist" aria-live="polite"></div></div>`).join('');
   document.querySelectorAll('#fields .panel').forEach(p => {
     const k = p.dataset.k, f = FIELDS[k], inp = p.querySelector('input');
     const test = () => {
       if (!running || tries <= 0) return;
       const raw = inp.value, v = f.num ? (raw.trim() === '' ? NaN : Number(raw)) : raw, acc = f.impl(v), mis = f.ok(v) !== acc; tries--;
       const d = document.createElement('div'); d.className = 'entry';
-      d.innerHTML = `<span>${f.num ? raw || '(empty)' : `"${raw}" (${raw.length} chars)`} → <span class="pill ${acc ? 'g' : 'r'}">${acc ? 'accepted' : 'rejected'}</span></span><button class="btn small ghost">⚑ Report</button>`;
+      d.innerHTML = `<span>${f.num ? raw || '(empty)' : `"${raw}" (${raw.length} chars)`} → <span class="pill ${acc ? 'g' : 'r'}">${acc ? 'accepted' : 'rejected'}</span></span><button class="btn small ghost" aria-label="Report a bug for this result: ${f.num ? raw || 'empty' : raw.length + ' characters'} was ${acc ? 'accepted' : 'rejected'}">⚑ Report</button>`;
       d.querySelector('button').onclick = e => {
         if (!running) return; e.target.disabled = true;
         if (mis && !found.has(k)) { found.add(k); score += 100; d.style.outline = '2px solid var(--a2)'; }

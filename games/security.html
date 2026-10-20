@@ -55,9 +55,9 @@ function finish() {
 }
 function build() {
   $('#stage').innerHTML = `<div class="two">${ks.map(k => { const T = TARGETS[k]; return `<div class="panel" data-k="${k}"><h2>${T.name}</h2>
-    ${T.fields.map(f => `<label class="l">${f[1]}</label><input class="in" data-f="${f[0]}">`).join('')}
+    ${T.fields.map(f => `<label class="l" for="in-${k}-${f[0]}">${f[1]}</label><input class="in" id="in-${k}-${f[0]}" data-f="${f[0]}">`).join('')}
     <div class="actions"><button class="btn small send">Send</button><button class="btn small ghost hint">💡 Hint (−25)</button></div>
-    <div class="res out" style="margin-top:10px">Waiting for input…</div><div class="fixbox"></div></div>`; }).join('')}</div><div class="actions"><button class="btn small ghost" id="fin">🏁 Finish</button></div>`;
+    <div class="res out" aria-live="polite" style="margin-top:10px">Waiting for input…</div><div class="fixbox"></div></div>`; }).join('')}</div><div class="actions"><button class="btn small ghost" id="fin">🏁 Finish</button></div>`;
   $('#fin').onclick = () => { if (running) finish(); };
   document.querySelectorAll('.panel[data-k]').forEach(p => {
     const k = p.dataset.k, T = TARGETS[k];
@@ -67,7 +67,7 @@ function build() {
       const r = T.run(vals, lv0); p.querySelector('.out').textContent = r.text;
       if (r.hit && !state[k].hit) {
         state[k].hit = true; score += 100; p.querySelector('.out').insertAdjacentHTML('beforeend', '\n\n✅ Vulnerability exploited! +100');
-        p.querySelector('.fixbox').innerHTML = `<label class="l">${T.fix.q}</label><div class="opts">${T.fix.opts.map((o, i) => [o, i]).sort(() => Math.random() - .5).map(([o, i]) => `<button class="opt" data-i="${i}">${o}</button>`).join('')}</div><div class="fb"></div>`;
+        p.querySelector('.fixbox').innerHTML = `<div class="l" id="fq-${k}">${T.fix.q}</div><div class="opts" role="group" aria-labelledby="fq-${k}">${T.fix.opts.map((o, i) => [o, i]).sort(() => Math.random() - .5).map(([o, i]) => `<button class="opt" data-i="${i}">${o}</button>`).join('')}</div><div class="fb"></div>`;
         p.querySelectorAll('.fixbox .opt').forEach(b => b.onclick = () => {
           if (state[k].fixed) return; const ok = +b.dataset.i === T.fix.ok; state[k].fixed = ok ? 'ok' : 'bad'; if (ok) score += 50;
           b.classList.add(ok ? 'ok' : 'bad'); p.querySelector('.fb').className = 'fb ' + (ok ? 'good' : 'miss'); p.querySelector('.fb').innerHTML = (ok ? '✓ ' : '✗ The best fix: ' + T.fix.opts[T.fix.ok] + '. ') + T.fix.why; draw();

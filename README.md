@@ -51,6 +51,27 @@ Three mock technical rounds, each chaining three games into one timed assessment
 - **SDET · Technical**: API Lab → Flaky Test Hunt → Security Lab
 - **QA Lead · Strategy**: Regression Radar → Bug Triage Board → Perf Lab
 
+## 🧪 Tests
+
+The site has no build step, but it is tested like a product. The suite uses [Playwright](https://playwright.dev) with [axe-core](https://github.com/dequelabs/axe-core), runs on desktop and a phone-sized viewport, and covers:
+
+- **Accessibility:** axe-core (WCAG 2.2 A and AA) on every page in light and dark mode, and on the start, in-play and end state of every game
+- **Keyboard use:** every game can be started, played and finished without a mouse; dialogs trap focus and are modal; focus is always visible; the inspector games use arrow keys, Enter to inspect and R to report
+- **Gameplay:** each game is played to a correct result, scoring rules, levels, timers and saved scores are checked, and interview mode produces the right scorecard
+- **Prompt library:** search, filters, tool list, guardrails on copy, and the secret scanner (it must block real-looking secrets and must not flag placeholders)
+- **Site quality:** no console errors, working internal links, no horizontal scrolling on phones, and repository hygiene (no secrets, no personal phone number)
+
+```bash
+npm install
+npx playwright install chromium   # once
+npm test                          # whole suite (starts a local server)
+npm run test:a11y                 # only the axe-core checks
+npm run test:keyboard             # only the keyboard tests
+npm run report                    # open the last HTML report
+```
+
+The suite also runs on every push through GitHub Actions (`.github/workflows/test.yml`).
+
 ## 🗺️ Repo map
 
 ```text
@@ -59,6 +80,8 @@ Three mock technical rounds, each chaining three games into one timed assessment
 ├── prompts.html          searchable library of prompts for testing
 ├── 404.html              a 404 that admits it is a bug
 ├── game/                 old Bug Hunt URL (redirects)
+├── tests/                Playwright + axe-core tests (accessibility, keyboard, gameplay, prompts, site)
+├── playwright.config.js  test configuration
 └── games/
     ├── index.html        the arcade hub (+ saved best scores)
     ├── interview.html    interview runner + scorecard
@@ -69,7 +92,7 @@ Three mock technical rounds, each chaining three games into one timed assessment
 
 ## 🚀 Run it
 
-No build, no install:
+No build and no install are needed to view the site:
 
 ```bash
 python3 -m http.server 8000

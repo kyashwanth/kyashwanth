@@ -12,10 +12,10 @@
 <meta name="description" content="Yashwanth Reddy Kudumula: quality engineer with 15+ years in QA and test automation across e-commerce, healthcare and BFSI. Focus on AI-driven test automation.">
 <style>
   :root {
-    --bg:#0f1318; --panel:#161b22; --fg:#e6e9ee; --muted:#9aa4b2; --line:#262d37; --accent:#4cc2ff;
+    --bg:#0f1318; --panel:#161b22; --fg:#e6e9ee; --muted:#9aa4b2; --line:#262d37; --accent:#4cc2ff; --on-accent:#06121c;
   }
   @media (prefers-color-scheme: light) {
-    :root { --bg:#f6f7f9; --panel:#ffffff; --fg:#14181f; --muted:#59636f; --line:#dfe3e8; --accent:#0969da; }
+    :root { --bg:#f6f7f9; --panel:#ffffff; --fg:#14181f; --muted:#59636f; --line:#dfe3e8; --accent:#0969da; --on-accent:#ffffff; }
   }
   * { box-sizing:border-box; }
   html { scroll-behavior:smooth; }
@@ -29,7 +29,7 @@
   .logo { font-weight:700; color:var(--fg); letter-spacing:-.01em; }
   nav ul { display:flex; gap:22px; list-style:none; margin:0; padding:0; font-size:14px; }
   nav ul a { color:var(--muted); } nav ul a:hover { color:var(--fg); text-decoration:none; }
-  @media (max-width:700px) { nav ul li:nth-child(n+4):not(:last-child) { display:none; } }
+  @media (max-width:700px) { nav .wrap { height:auto; padding-top:10px; padding-bottom:10px; flex-wrap:wrap; gap:6px 16px; } nav ul { flex-wrap:wrap; gap:4px 16px; } }   /* wrap instead of hiding links so every page stays reachable on phones */
 
   header.hero { padding:72px 0 56px; display:grid; grid-template-columns:1.5fr 1fr; gap:40px; align-items:start; }
   @media (max-width:820px) { header.hero { grid-template-columns:1fr; padding-top:48px; } }
@@ -40,7 +40,7 @@
   .btns { display:flex; gap:10px; margin-top:26px; flex-wrap:wrap; }
   .btn { padding:10px 18px; border-radius:8px; border:1px solid var(--line); background:var(--panel); color:var(--fg); font-weight:600; font-size:14px; }
   .btn:hover { border-color:var(--accent); text-decoration:none; }
-  .btn.primary { background:var(--accent); border-color:var(--accent); color:#06121c; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
   .snap { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; }
   .snap h2 { margin:0 0 12px; }
   .snap dl { margin:0; display:grid; gap:12px; font-size:14px; }

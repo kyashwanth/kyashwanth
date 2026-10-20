@@ -63,7 +63,7 @@
   window.addEventListener('message', e => {
     const fr = $('#fr'); if (!fr || e.source !== fr.contentWindow || !e.data || e.data.type !== 'qa-result') return;
     const S = R.stages[si]; results[si] = { ...S, pct:e.data.pct ?? 0, score:e.data.score };
-    $('#nx').hidden = false;
+    $('#nx').hidden = false; $('#nx').focus();
   });
   function verdictOf(p) { return p >= 85 ? ['🏆', 'Strong hire', 'Excellent across the board. You would pass this round with confidence.'] : p >= 70 ? ['✅', 'Hire', 'Solid performance with a few gaps worth tightening.'] : p >= 50 ? ['🤔', 'Maybe', 'Some good instincts, but there are clear gaps to close before the real thing.'] : ['📚', 'Not yet', 'Keep practising the individual games, then try this round again.']; }
   function card() {
